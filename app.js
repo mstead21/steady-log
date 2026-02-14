@@ -103,7 +103,17 @@ function saveTracker(t){
 
   return rows.join("\n");
 }
-
+function downloadText(filename, text, mime="text/plain"){
+  const blob = new Blob([text], {type: mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
 function todayYMD(){
   return new Date().toISOString().slice(0,10);
 }
