@@ -298,7 +298,55 @@ function homeView(){
   document.getElementById("btnTemplateEditor").onclick = templatesView;
   document.getElementById("btnSettings").onclick = settingsView;
 }
+function trackerView(){
+  setPill("Tracker");
+  const t = loadTracker();
+  const d = todayYMD();
 
+  const weightsSorted = (t.weights||[]).slice().sort((a,b)=> (a.date>b.date?1:-1));
+  const last7 = weightsSorted.slice(-7);
+  const last7Avg = last7.length ? avg(last7.map(x=>Number(x.kg)||0)) : 0;
+
+  const lastWaist = (t.waists||[]).slice().sort((a,b)=> (a.date>b.date?1:-1)).slice(-1)[0];
+
+  view.innerHTML = `
+    <h2>Cut Tracker</h2>
+
+    <div class="card">
+      <div class="section-title">Daily Weight</div>
+      <input class="input" id="wtKg" placeholder="Weight (kg)">
+      <button class="btn primary" id="saveWeight">Save Weight</button>
+      <div class="sub">Last 7 day avg: <b>${last7Avg ? last7Avg.toFixed(1) : "—"}</b></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Weekly Waist</div>
+      <input class="input" id="waistCm" placeholder="Waist (cm)">
+      <button class="btn primary" id="saveWaist">Save Waist</button>
+      <div class="sub">Last saved: <b>${lastWaist ? lastWaist.cm + " cm" : "—"}</b></div>
+    </div>
+  `;
+
+  document.getElementById("saveWeight").onclick = ()=>{
+    const kg = Number(document.getElementById("wtKg").value);
+    if(!kg){ alert("Enter weight"); return; }
+
+    const tt = loadTracker();
+    tt.weights.push({date:d, kg:kg});
+    saveTracker(tt);
+    trackerView();
+  };
+
+  document.getElementById("saveWaist").onclick = ()=>{
+    const cm = Number(document.getElementById("waistCm").value);
+    if(!cm){ alert("Enter waist"); return; }
+
+    const tt = loadTracker();
+    tt.waists.push({date:d, cm:cm});
+    saveTracker(tt);
+    trackerView();
+  };
+}
 function startWorkout(templateId){
   TEMPLATES = loadTemplates();
   const tpl = TEMPLATES.find(t=>t.id===templateId);
