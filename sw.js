@@ -1,15 +1,12 @@
-// Steady Log SW v12 (cache-fix)
-const CACHE = "steady-log-v12";
-const ASSETS = ["./","./index.html","./styles.css","./manifest.json","./icon-192.png","./icon-512.png"];
-
+// Steady Log SW v13 (mobile-optimised, cache-safe)
+const CACHE = "steady-log-v13";
 self.addEventListener("install", (e) => {
   e.waitUntil((async ()=>{
     const cache = await caches.open(CACHE);
-    await cache.addAll(ASSETS);
+    await cache.addAll(["./","./index.html","./styles.css","./app.js","./manifest.json","./icon-192.png","./icon-512.png"]);
     await self.skipWaiting();
   })());
 });
-
 self.addEventListener("activate", (e) => {
   e.waitUntil((async ()=>{
     const keys = await caches.keys();
@@ -17,11 +14,9 @@ self.addEventListener("activate", (e) => {
     await self.clients.claim();
   })());
 });
-
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
-  // Always try network first for app.js (updates)
-  if (url.pathname.endsWith("/app.js")) {
+  if (url.pathname.endsWith("/app.js") || url.pathname.endsWith("/styles.css")) {
     e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
     return;
   }

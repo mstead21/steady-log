@@ -377,10 +377,10 @@ function workoutView(){
 
               ${(ex.sets||[]).map((s,sidx)=>`
                 <div class="set">
-                  <input class="input" inputmode="decimal" placeholder="KG" value="${s.kg ?? ""}" data-kg="${idx}:${sidx}">
-                  <input class="input" inputmode="numeric" placeholder="Reps" value="${s.reps ?? ""}" data-reps="${idx}:${sidx}">
-                  <button class="smallbtn ok ${s.done?"ok":""}" data-done="${idx}:${sidx}">✓</button>
-                  <button class="smallbtn del" data-del="${idx}:${sidx}">🗑</button>
+                  <input class="input" inputmode="decimal" enterkeyhint="next" placeholder="KG" value="${s.kg ?? ""}" data-role="kg" data-kg="${idx}:${sidx}">
+                  <input class="input" inputmode="numeric" pattern="[0-9]*" enterkeyhint="done" placeholder="Reps" value="${s.reps ?? ""}" data-role="reps" data-reps="${idx}:${sidx}">
+                  <button class="smallbtn ok ${s.done?"ok":""}" data-role="done" data-done="${idx}:${sidx}">✓</button>
+                  <button class="smallbtn del" data-role="del" data-del="${idx}:${sidx}">🗑</button>
                 </div>
               `).join("")}
             </div>`;

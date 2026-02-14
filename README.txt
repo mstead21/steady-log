@@ -1,7 +1,12 @@
-Steady Log v1.2 (cache-fix build)
-Upload ALL files to the repo ROOT.
-Then open: https://mstead21.github.io/steady-log/
+Steady Log v1.3 (Mobile Optimised)
+Upload ALL files to your repo ROOT (overwrite existing).
 
-If you still see an old/basic version on iPhone:
-Settings > Safari > Advanced > Website Data > delete mstead21.github.io
-Then reload and Add to Home Screen again.
+Fixes:
+- Portrait: Start buttons stack (no bunching)
+- Portrait: Set rows become 2 lines (KG/Reps on top, ✓/🗑 below)
+- Footer becomes 2x2 grid on portrait
+- KG/Reps open number pads
+
+After upload (one-time):
+iPhone -> Settings -> Safari -> Advanced -> Website Data -> delete mstead21.github.io
+Reload site in Safari -> Share -> Add to Home Screen
