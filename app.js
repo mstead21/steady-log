@@ -89,7 +89,9 @@ function loadTracker(){
 
 function saveTracker(t){
   saveJSON(TRACKER_KEY, t);
-}function trackerToCSV(tracker){
+}
+
+function trackerToCSV(tracker){
   const rows = [];
   rows.push("type,date,value");
 
