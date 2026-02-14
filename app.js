@@ -5,11 +5,15 @@
    - Notes: per session + per exercise
    - PRs + recent progress
    - Editable templates (add/remove/reorder/change sets & rep targets)
+
+   Added:
+   - Tracker tab (daily weight + weekly waist)
+   - Tracker CSV export
 */
 const STORAGE_KEY = "steadylog.sessions.v2";
 const SETTINGS_KEY = "steadylog.settings.v2";
 const TEMPLATES_KEY = "steadylog.templates.v2";
-const TRACKER_KEY = "steadylog.tracker.v1";
+const TRACKER_KEY  = "steadylog.tracker.v1";
 
 const DEFAULT_TEMPLATES = [
   {
@@ -47,7 +51,7 @@ const DEFAULT_TEMPLATES = [
       { id:"pec_deck", name:"Pec Deck / Fly", sets:3, reps:"12–15" },
       { id:"rear_delt", name:"Rear Delt Machine", sets:3, reps:"12–15" },
       { id:"face_pull", name:"Face Pull (Cable)", sets:3, reps:"12–15" },
-      { id:"hammer_curl", name:"Hammer Curl Machine", sets:3, reps:"10–12" },
+      { id:"hammer_curl", name:"DB Hammer Curl", sets:3, reps:"10–12" },
     ]
   },
   {
@@ -55,9 +59,9 @@ const DEFAULT_TEMPLATES = [
     name: "Lower B",
     subtitle: "Hamstrings & Glutes",
     exercises: [
-      { id:"smith_rdl", name:"Smith RDL", sets:3, reps:"8–10" },
-      { id:"lying_curl", name:"Lying Leg Curl", sets:3, reps:"10–12" },
+      { id:"smith_rdl", name:"Smith Romanian Deadlift", sets:3, reps:"8–10" },
       { id:"hip_thrust", name:"Hip Thrust Machine", sets:3, reps:"8–10" },
+      { id:"lying_curl", name:"Lying Leg Curl", sets:3, reps:"10–12" },
       { id:"smith_split", name:"Smith Split Squat", sets:2, reps:"10 / leg" },
       { id:"seated_calves", name:"Seated Calf Raise", sets:3, reps:"15–20" },
     ]
@@ -65,46 +69,31 @@ const DEFAULT_TEMPLATES = [
 ];
 
 function nowISO(){ return new Date().toISOString(); }
+function todayYMD(){ return new Date().toISOString().slice(0,10); }
+
 function fmtDate(iso){
   const d = new Date(iso);
   return d.toLocaleString(undefined, { weekday:"short", year:"numeric", month:"short", day:"numeric", hour:"2-digit", minute:"2-digit" });
 }
+
 function toast(msg){
   const t = document.getElementById("toast");
+  if(!t) return;
   t.textContent = msg;
   t.classList.add("show");
   setTimeout(()=>t.classList.remove("show"), 1600);
 }
+
 function vibrate(pattern=[120,60,120]){
   try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){}
 }
+
 function loadJSON(key, fallback){
   try{ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }
   catch(e){ return fallback; }
 }
 function saveJSON(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
-function loadTracker(){
-  return loadJSON(TRACKER_KEY, { weights: [], waists: [], photos: [] });
-}
 
-function saveTracker(t){
-  saveJSON(TRACKER_KEY, t);
-}
-
-function trackerToCSV(tracker){
-  const rows = [];
-  rows.push("type,date,value");
-
-  (tracker.weights||[]).forEach(w=>{
-    rows.push(`weight,${w.date},${w.kg}`);
-  });
-
-  (tracker.waists||[]).forEach(w=>{
-    rows.push(`waist,${w.date},${w.cm}`);
-  });
-
-  return rows.join("\n");
-}
 function downloadText(filename, text, mime="text/plain"){
   const blob = new Blob([text], {type: mime});
   const url = URL.createObjectURL(blob);
@@ -116,14 +105,27 @@ function downloadText(filename, text, mime="text/plain"){
   a.remove();
   URL.revokeObjectURL(url);
 }
-function todayYMD(){
-  return new Date().toISOString().slice(0,10);
-}
 
+/* Tracker storage */
+function loadTracker(){
+  return loadJSON(TRACKER_KEY, { weights: [], waists: [] });
+}
+function saveTracker(t){
+  saveJSON(TRACKER_KEY, t);
+}
 function avg(arr){
   if(!arr.length) return 0;
   return arr.reduce((a,b)=>a+b,0)/arr.length;
 }
+function trackerToCSV(tracker){
+  const rows = [];
+  rows.push("type,date,value");
+  (tracker.weights||[]).forEach(w=> rows.push(`weight,${w.date},${w.kg}`));
+  (tracker.waists||[]).forEach(w=> rows.push(`waist,${w.date},${w.cm}`));
+  return rows.join("\n");
+}
+
+/* Sessions / settings / templates */
 function loadSessions(){ return loadJSON(STORAGE_KEY, []); }
 function saveSessions(sessions){ saveJSON(STORAGE_KEY, sessions); }
 
@@ -140,7 +142,10 @@ function saveTemplates(tpls){ saveJSON(TEMPLATES_KEY, tpls); }
 let SETTINGS = loadSettings();
 let TEMPLATES = loadTemplates();
 
-function setPill(text){ document.getElementById("pillStatus").textContent = text; }
+function setPill(text){
+  const pill = document.getElementById("pillStatus");
+  if(pill) pill.textContent = text;
+}
 
 function escapeHtml(str){
   return String(str)
@@ -281,9 +286,7 @@ function resetFooterNav(){
   document.getElementById("navTracker").onclick = ()=>{ stopTimer(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); trackerView(); resetFooterNav(); };
   document.getElementById("navExport").onclick = ()=>{ stopTimer(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); exportView(); resetFooterNav(); };
 }
-  trackerView();
-  resetFooterNav();
-};
+
 function setFooterActions(actions){
   const wrap = document.querySelector(".footerbar .wrap");
   wrap.innerHTML = actions
@@ -333,6 +336,7 @@ function homeView(){
   document.getElementById("btnTemplateEditor").onclick = templatesView;
   document.getElementById("btnSettings").onclick = settingsView;
 }
+
 function trackerView(){
   setPill("Tracker");
   const t = loadTracker();
@@ -345,43 +349,67 @@ function trackerView(){
   const lastWaist = (t.waists||[]).slice().sort((a,b)=> (a.date>b.date?1:-1)).slice(-1)[0];
 
   view.innerHTML = `
-    <h2>Cut Tracker</h2>
-
     <div class="card">
-      <div class="section-title">Daily Weight</div>
-      <input class="input" id="wtKg" placeholder="Weight (kg)">
+      <h2>Cut Tracker</h2>
+      <div class="exercise-meta">Log daily weight + weekly waist.</div>
+      <div class="hr"></div>
+
+      <div class="section-title" style="margin-top:0;">Daily Weight</div>
+      <input class="input" id="wtKg" inputmode="decimal" placeholder="Weight (kg)">
+      <div style="height:10px"></div>
       <button class="btn primary" id="saveWeight">Save Weight</button>
-      <div class="sub">Last 7 day avg: <b>${last7Avg ? last7Avg.toFixed(1) : "—"}</b></div>
-    </div>
+      <div class="sub" style="margin-top:10px;">Last 7-day avg: <b>${last7Avg ? last7Avg.toFixed(1) : "—"}</b></div>
 
-    <div class="card">
-      <div class="section-title">Weekly Waist</div>
-      <input class="input" id="waistCm" placeholder="Waist (cm)">
+      <div class="hr"></div>
+
+      <div class="section-title" style="margin-top:0;">Weekly Waist</div>
+      <input class="input" id="waistCm" inputmode="decimal" placeholder="Waist (cm)">
+      <div style="height:10px"></div>
       <button class="btn primary" id="saveWaist">Save Waist</button>
-      <div class="sub">Last saved: <b>${lastWaist ? lastWaist.cm + " cm" : "—"}</b></div>
+      <div class="sub" style="margin-top:10px;">Last saved waist: <b>${lastWaist ? `${lastWaist.cm} cm (${lastWaist.date})` : "—"}</b></div>
+
+      <div class="hr"></div>
+
+      <div class="section-title" style="margin-top:0;">Recent Weights</div>
+      <div class="list">
+        ${(weightsSorted.slice(-10).reverse().map(x=>`
+          <div class="exercise">
+            <div class="exercise-head">
+              <div class="exercise-name">${x.kg} kg</div>
+              <div class="exercise-meta">${x.date}</div>
+            </div>
+          </div>
+        `).join("") || `<div class="exercise"><div class="exercise-meta">No weights logged yet.</div></div>`)}
+      </div>
     </div>
   `;
 
   document.getElementById("saveWeight").onclick = ()=>{
     const kg = Number(document.getElementById("wtKg").value);
-    if(!kg){ alert("Enter weight"); return; }
+    if(!kg){ alert("Enter weight (kg)"); return; }
 
     const tt = loadTracker();
-    tt.weights.push({date:d, kg:kg});
+    // replace same-day entry
+    tt.weights = (tt.weights||[]).filter(x=>x.date!==d);
+    tt.weights.push({date:d, kg:Number(kg.toFixed(1))});
     saveTracker(tt);
+    toast("Weight saved ✅");
     trackerView();
   };
 
   document.getElementById("saveWaist").onclick = ()=>{
     const cm = Number(document.getElementById("waistCm").value);
-    if(!cm){ alert("Enter waist"); return; }
+    if(!cm){ alert("Enter waist (cm)"); return; }
 
     const tt = loadTracker();
-    tt.waists.push({date:d, cm:cm});
+    tt.waists = (tt.waists||[]).filter(x=>x.date!==d);
+    tt.waists.push({date:d, cm:Number(cm.toFixed(1))});
     saveTracker(tt);
+    toast("Waist saved ✅");
     trackerView();
   };
 }
+
 function startWorkout(templateId){
   TEMPLATES = loadTemplates();
   const tpl = TEMPLATES.find(t=>t.id===templateId);
@@ -670,11 +698,8 @@ function exportView(){
       <button class="btn danger" id="btnWipe">Wipe all data</button>
     </div>`;
 
-  // Existing workout export
-  document.getElementById("btnCsv").onclick = ()=> 
-    downloadCSV(loadSessions());
+  document.getElementById("btnCsv").onclick = ()=> downloadCSV(loadSessions());
 
-  // NEW Tracker export
   document.getElementById("btnExportTracker").onclick = ()=>{
     const t = loadTracker();
     const csv = trackerToCSV(t);
@@ -686,16 +711,19 @@ function exportView(){
     toast("Tracker CSV downloaded ✅");
   };
 
-  // Wipe button
   document.getElementById("btnWipe").onclick = ()=>{
     if(confirm("Wipe ALL Steady Log data from this phone?")){
       localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(TRACKER_KEY);
+      localStorage.removeItem(SETTINGS_KEY);
+      localStorage.removeItem(TEMPLATES_KEY);
       sessionStorage.removeItem("steadylog.draft");
       toast("Wiped");
       exportView();
     }
   };
 }
+
 function downloadCSV(sessions){
   const rows=[["date","workout","exercise","set_index","kg","reps","session_notes","exercise_note"]];
   for(const ses of sessions){
