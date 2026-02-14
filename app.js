@@ -9,6 +9,7 @@
 const STORAGE_KEY = "steadylog.sessions.v2";
 const SETTINGS_KEY = "steadylog.settings.v2";
 const TEMPLATES_KEY = "steadylog.templates.v2";
+const TRACKER_KEY = "steadylog.tracker.v1";
 
 const DEFAULT_TEMPLATES = [
   {
