@@ -645,6 +645,16 @@ function exportView(){
       <div class="hr"></div>
       <button class="btn primary" id="btnCsv">Download CSV</button>
       <button class="btn" id="btnExportTracker">Export Tracker CSV</button>
+      document.getElementById("btnExportTracker").onclick = ()=>{
+  const t = loadTracker();
+  const csv = trackerToCSV(t);
+  downloadText(
+    `steady-tracker-${new Date().toISOString().slice(0,10)}.csv`,
+    csv,
+    "text/csv"
+  );
+  toast("Tracker CSV downloaded ✅");
+};
       <div style="height:10px"></div>
       <button class="btn danger" id="btnWipe">Wipe all data</button>
     </div>`;
