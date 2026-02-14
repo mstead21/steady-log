@@ -643,22 +643,32 @@ function exportView(){
       <h2>Export</h2>
       <div class="exercise-meta">Download a CSV backup.</div>
       <div class="hr"></div>
+
       <button class="btn primary" id="btnCsv">Download CSV</button>
       <button class="btn" id="btnExportTracker">Export Tracker CSV</button>
-      document.getElementById("btnExportTracker").onclick = ()=>{
-  const t = loadTracker();
-  const csv = trackerToCSV(t);
-  downloadText(
-    `steady-tracker-${new Date().toISOString().slice(0,10)}.csv`,
-    csv,
-    "text/csv"
-  );
-  toast("Tracker CSV downloaded ✅");
-};
+
       <div style="height:10px"></div>
+
       <button class="btn danger" id="btnWipe">Wipe all data</button>
     </div>`;
-  document.getElementById("btnCsv").onclick = ()=> downloadCSV(loadSessions());
+
+  // Existing workout export
+  document.getElementById("btnCsv").onclick = ()=> 
+    downloadCSV(loadSessions());
+
+  // NEW Tracker export
+  document.getElementById("btnExportTracker").onclick = ()=>{
+    const t = loadTracker();
+    const csv = trackerToCSV(t);
+    downloadText(
+      `steady-tracker-${new Date().toISOString().slice(0,10)}.csv`,
+      csv,
+      "text/csv"
+    );
+    toast("Tracker CSV downloaded ✅");
+  };
+
+  // Wipe button
   document.getElementById("btnWipe").onclick = ()=>{
     if(confirm("Wipe ALL Steady Log data from this phone?")){
       localStorage.removeItem(STORAGE_KEY);
