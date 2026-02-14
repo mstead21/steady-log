@@ -644,6 +644,7 @@ function exportView(){
       <div class="exercise-meta">Download a CSV backup.</div>
       <div class="hr"></div>
       <button class="btn primary" id="btnCsv">Download CSV</button>
+      <button class="btn" id="btnExportTracker">Export Tracker CSV</button>
       <div style="height:10px"></div>
       <button class="btn danger" id="btnWipe">Wipe all data</button>
     </div>`;
