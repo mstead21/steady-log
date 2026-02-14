@@ -83,7 +83,22 @@ function loadJSON(key, fallback){
   catch(e){ return fallback; }
 }
 function saveJSON(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+function loadTracker(){
+  return loadJSON(TRACKER_KEY, { weights: [], waists: [], photos: [] });
+}
 
+function saveTracker(t){
+  saveJSON(TRACKER_KEY, t);
+}
+
+function todayYMD(){
+  return new Date().toISOString().slice(0,10);
+}
+
+function avg(arr){
+  if(!arr.length) return 0;
+  return arr.reduce((a,b)=>a+b,0)/arr.length;
+}
 function loadSessions(){ return loadJSON(STORAGE_KEY, []); }
 function saveSessions(sessions){ saveJSON(STORAGE_KEY, sessions); }
 
