@@ -89,6 +89,19 @@ function loadTracker(){
 
 function saveTracker(t){
   saveJSON(TRACKER_KEY, t);
+}function trackerToCSV(tracker){
+  const rows = [];
+  rows.push("type,date,value");
+
+  (tracker.weights||[]).forEach(w=>{
+    rows.push(`weight,${w.date},${w.kg}`);
+  });
+
+  (tracker.waists||[]).forEach(w=>{
+    rows.push(`waist,${w.date},${w.cm}`);
+  });
+
+  return rows.join("\n");
 }
 
 function todayYMD(){
