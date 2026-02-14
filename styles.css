@@ -47,7 +47,7 @@ h1{margin:0;font-size:18px}
 
 .footerbar{position:fixed;left:0;right:0;bottom:0;background:rgba(12,12,16,.85);backdrop-filter:blur(12px);
   border-top:1px solid rgba(255,255,255,.10);padding:10px 12px}
-.footerbar .wrap{max-width:860px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.footerbar .wrap{max-width:860px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
 @media (max-width:480px){
   .footerbar .wrap{grid-template-columns:repeat(2,1fr);gap:10px}
   .btn{padding:13px 12px}
