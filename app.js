@@ -254,24 +254,30 @@ let activeWorkout=null;
 
 function resetFooterNav(){
   const wrap = document.querySelector(".footerbar .wrap");
- wrap.innerHTML = `
-  <button class="btn ghost" id="navHome">Home</button>
-  <button class="btn ghost" id="navHistory">History</button>
-  <button class="btn ghost" id="navExercises">Exercises</button>
-  <button class="btn ghost" id="navTracker">Tracker</button>
-  <button class="btn ghost" id="navExport">Export</button>
-`;
+
+  wrap.innerHTML = `
+    <button class="btn ghost" id="navHome">Home</button>
+    <button class="btn ghost" id="navHistory">History</button>
+    <button class="btn ghost" id="navExercises">Exercises</button>
+    <button class="btn ghost" id="navTracker">Tracker</button>
+    <button class="btn ghost" id="navExport">Export</button>
+  `;
+
   document.getElementById("navHome").onclick = ()=>{ stopTimer(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); homeView(); resetFooterNav(); };
   document.getElementById("navHistory").onclick = ()=>{ stopTimer(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); historyView(); resetFooterNav(); };
   document.getElementById("navExercises").onclick = ()=>{ stopTimer(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); exercisesView(); resetFooterNav(); };
+  document.getElementById("navTracker").onclick = ()=>{ stopTimer(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); trackerView(); resetFooterNav(); };
   document.getElementById("navExport").onclick = ()=>{ stopTimer(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); exportView(); resetFooterNav(); };
-document.getElementById("navTracker").onclick = ()=>{
+}
   trackerView();
   resetFooterNav();
 };
 function setFooterActions(actions){
   const wrap = document.querySelector(".footerbar .wrap");
-  wrap.innerHTML = actions.map((a,i)=>`<button class="btn ${a.cls||"ghost"}" data-foot="${i}">${a.label}</button>`).join("");
+  wrap.innerHTML = actions
+    .map((a,i)=>`<button class="btn ${a.cls||"ghost"}" data-foot="${i}">${a.label}</button>`)
+    .join("");
+
   wrap.querySelectorAll("[data-foot]").forEach(btn=>{
     btn.onclick = ()=> actions[Number(btn.dataset.foot)].onClick();
   });
