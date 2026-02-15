@@ -199,13 +199,17 @@ const videoTitle = document.getElementById("videoTitle");
 
 function youtubeWebSearchUrl(q){ return "https://www.youtube.com/results?search_query=" + encodeURIComponent(q); }
 function youtubeEmbedSearchUrl(q){ return "https://www.youtube.com/embed?listType=search&list=" + encodeURIComponent(q) + "&rel=0&modestbranding=1&playsinline=1"; }
-function openVideo(searchText, titleText){
-  currentSearch = (searchText||"").trim();
-  if(!currentSearch){ toast("No video set"); return; }
-  videoTitle.textContent = titleText ? ("Video • " + titleText) : "Video";
-  videoFrame.src = youtubeEmbedSearchUrl(currentSearch);
+function openVideo(title, youtubeUrl){
+  // iOS/Safari is unreliable with embedded YouTube (and many videos block embeds),
+  // so we use a clean modal + "Open in YouTube" button.
+  videoTitle.textContent = `Video • ${title}`;
+  videoFrame.innerHTML = `
+    <div class="videoPlaceholder">
+      <div class="vpTitle">Watch this exercise</div>
+      <div class="vpSub">Tap <b>Open in YouTube</b> to play (best reliability on iPhone).</div>
+    </div>`;
+  openYtBtn.onclick = ()=> window.open(youtubeUrl, "_blank", "noopener");
   videoModal.classList.add("show");
-  videoModal.setAttribute("aria-hidden","false");
 }
 function closeVideo(){
   videoFrame.src = "";
