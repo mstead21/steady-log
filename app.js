@@ -1,16 +1,17 @@
-/* Steady Log (V1.5 full upgrade) - iPhone PWA - weights-only (Dark Mode)
-   Includes:
+/* Steady Log (V3) - iPhone PWA - weights + tracker + per-exercise rest + template pack
    - Per-exercise rest timer (auto-start on ✓)
-   - Tracker: daily weight + daily macros + weekly waist
-   - Streak + trends (7-day avg, streak counter)
+   - Suggested KG (last working set)
+   - Session notes + exercise notes
+   - Tracker: daily weight + daily macros + weekly waist + streaks + 7-day avg
    - Video link button per exercise
    - Export: workout CSV + tracker CSV
-   - Template Pack: Copy + Import (share programs easily)
+   - Template Pack: Copy + Import
 */
-const STORAGE_KEY  = "steadylog.sessions.v2";
-const SETTINGS_KEY = "steadylog.settings.v2";
+
+const STORAGE_KEY  = "steadylog.sessions.v3";
+const SETTINGS_KEY = "steadylog.settings.v3";
 const TEMPLATES_KEY= "steadylog.templates.v3";
-const TRACKER_KEY  = "steadylog.tracker.v2";
+const TRACKER_KEY  = "steadylog.tracker.v3";
 
 const DEFAULT_TEMPLATES = [
   {
@@ -23,7 +24,7 @@ const DEFAULT_TEMPLATES = [
       { id:"incline_plate_chest_press", name:"Incline Plate Chest Press Machine", sets:3, reps:"10–12", rest:90,  video:"https://www.youtube.com/watch?v=O2OxhEcpxmw" },
       { id:"shoulder_press", name:"Shoulder Press Machine", sets:3, reps:"8–10", rest:120, video:"https://www.youtube.com/watch?v=ef-hOkkRuY0" },
       { id:"tri_pushdown", name:"Tricep Pushdown (Cable)", sets:3, reps:"12–15", rest:60,  video:"https://www.youtube.com/watch?v=odbyvJm7d8s" },
-      { id:"preacher_curl", name:"Preacher Curl Machine", sets:3, reps:"12–15", rest:60,  video:"https://www.youtube.com/watch?v=to3m8zws1n8" },
+      { id:"preacher_curl", name:"Preacher Curl Machine", sets:3, reps:"12–15", rest:60,  video:"https://www.youtube.com/watch?v=to3m8zws1n8" }
     ]
   },
   {
@@ -35,7 +36,7 @@ const DEFAULT_TEMPLATES = [
       { id:"leg_press", name:"Leg Press", sets:3, reps:"12–15",      rest:150, video:"https://www.youtube.com/watch?v=kf4_xcbfjrc" },
       { id:"walking_lunges", name:"Walking Lunges", sets:2, reps:"20 steps", rest:90, video:"https://www.youtube.com/watch?v=vYfp2t4XgqQ" },
       { id:"leg_ext", name:"Leg Extension", sets:3, reps:"12–15",     rest:75,  video:"https://www.youtube.com/watch?v=W5AZCNTFpBk" },
-      { id:"standing_calves", name:"Standing Calf Raise (Machine)", sets:3, reps:"15–20", rest:60, video:"https://www.youtube.com/watch?v=Pw0O0fIIG-g" },
+      { id:"standing_calves", name:"Standing Calf Raise (Machine)", sets:3, reps:"15–20", rest:60, video:"https://www.youtube.com/watch?v=Pw0O0fIIG-g" }
     ]
   },
   {
@@ -48,7 +49,7 @@ const DEFAULT_TEMPLATES = [
       { id:"pec_deck", name:"Pec Deck / Fly", sets:3, reps:"12–15", rest:75,  video:"https://www.youtube.com/watch?v=_4JjOqy0UiY" },
       { id:"rear_delt", name:"Rear Delt Machine", sets:3, reps:"12–15", rest:60,  video:"https://www.youtube.com/watch?v=JL8nHvZcAK8" },
       { id:"face_pull", name:"Face Pull (Cable)", sets:3, reps:"12–15", rest:60,  video:"https://www.youtube.com/watch?v=ljgqer1ZpXg" },
-      { id:"hammer_curl", name:"Hammer Curl", sets:3, reps:"10–12", rest:60,  video:"https://www.youtube.com/watch?v=BRVDS6HVR9Q" },
+      { id:"hammer_curl", name:"Hammer Curl", sets:3, reps:"10–12", rest:60,  video:"https://www.youtube.com/watch?v=BRVDS6HVR9Q" }
     ]
   },
   {
@@ -60,12 +61,14 @@ const DEFAULT_TEMPLATES = [
       { id:"lying_curl", name:"Lying Leg Curl", sets:3, reps:"10–12", rest:90,  video:"https://www.youtube.com/watch?v=sbke8rheN7Y" },
       { id:"hip_thrust", name:"Hip Thrust / Glute Drive Machine", sets:3, reps:"8–10", rest:120, video:"https://www.youtube.com/watch?v=EAdDjw-k3ow" },
       { id:"smith_split", name:"Smith Split Squat", sets:2, reps:"10 / leg", rest:120, video:"https://www.youtube.com/watch?v=MXrSCU4P9L4" },
-      { id:"seated_calves", name:"Seated Calf Raise", sets:3, reps:"15–20", rest:60, video:"https://www.youtube.com/watch?v=yTkZOIEAWm0" },
+      { id:"seated_calves", name:"Seated Calf Raise", sets:3, reps:"15–20", rest:60, video:"https://www.youtube.com/watch?v=yTkZOIEAWm0" }
     ]
   }
 ];
 
 // ---------- helpers ----------
+const view = document.getElementById("view");
+
 function nowISO(){ return new Date().toISOString(); }
 function todayYMD(){ return new Date().toISOString().slice(0,10); }
 
@@ -75,6 +78,7 @@ function fmtDate(iso){
 }
 function toast(msg){
   const t = document.getElementById("toast");
+  if(!t) return;
   t.textContent = msg;
   t.classList.add("show");
   setTimeout(()=>t.classList.remove("show"), 1600);
@@ -115,7 +119,6 @@ function loadSettings(){ return loadJSON(SETTINGS_KEY, { restSeconds: 90 }); }
 function saveSettings(s){ saveJSON(SETTINGS_KEY, s); }
 
 function normalizeTemplates(tpls){
-  // Ensure every exercise has rest + video keys
   return (tpls||[]).map(t=>({
     id: t.id || crypto.randomUUID(),
     name: t.name || "Template",
@@ -130,7 +133,6 @@ function normalizeTemplates(tpls){
     }))
   }));
 }
-
 function loadTemplates(){
   const saved = loadJSON(TEMPLATES_KEY, null);
   if(saved && Array.isArray(saved) && saved.length) return normalizeTemplates(saved);
@@ -143,7 +145,6 @@ function loadTracker(){
 }
 function saveTracker(t){ saveJSON(TRACKER_KEY, t); }
 
-// Tracker CSV
 function trackerToCSV(tr){
   const rows = [];
   rows.push("type,date,kg,cm,calories,protein,carbs,fat");
@@ -152,7 +153,6 @@ function trackerToCSV(tr){
   (tr.macros||[]).forEach(m=> rows.push(`macros,${m.date},,,${m.calories},${m.protein},${m.carbs},${m.fat}`));
   return rows.join("\n");
 }
-
 function downloadText(filename, content, mime="text/plain"){
   const blob = new Blob([content], {type:mime});
   const url = URL.createObjectURL(blob);
@@ -162,8 +162,7 @@ function downloadText(filename, content, mime="text/plain"){
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
-// Workout export CSV
-function downloadCSV(sessions){
+function downloadWorkoutCSV(sessions){
   const rows=[["date","workout","exercise","set_index","kg","reps","session_notes","exercise_note"]];
   for(const ses of sessions){
     for(const ex of ses.exercises){
@@ -177,7 +176,6 @@ function downloadCSV(sessions){
   toast("Workout CSV downloaded ✅");
 }
 
-// Suggested KG from last session
 function getLastSetsForExercise(exId){
   const sessions = loadSessions();
   for(let i=sessions.length-1;i>=0;i--){
@@ -197,7 +195,6 @@ function getSuggestedKg(exId){
   return (Number(last.kg) || "");
 }
 
-// Stats
 function computeStats(){
   const sessions = loadSessions();
   const total = sessions.length;
@@ -216,15 +213,14 @@ function computeStats(){
   return {total,last,best};
 }
 
-// ---------- Template Pack (share/import) ----------
+// ---------- Template Pack ----------
 function makeTemplatePack(){
-  const templates = loadTemplates();
   return {
-    app: "steady-log",
-    type: "template-pack",
-    version: 1,
+    app:"steady-log",
+    type:"template-pack",
+    version:1,
     createdAt: nowISO(),
-    templates: normalizeTemplates(templates)
+    templates: normalizeTemplates(loadTemplates())
   };
 }
 async function copyToClipboard(text){
@@ -234,26 +230,21 @@ async function copyToClipboard(text){
       return true;
     }
   }catch(e){}
-  // fallback
   try{
-    const ta = document.createElement("textarea");
-    ta.value = text;
-    ta.style.position="fixed";
-    ta.style.opacity="0";
+    const ta=document.createElement("textarea");
+    ta.value=text; ta.style.position="fixed"; ta.style.opacity="0";
     document.body.appendChild(ta);
     ta.focus(); ta.select();
-    const ok = document.execCommand("copy");
+    const ok=document.execCommand("copy");
     ta.remove();
     return ok;
-  }catch(e){
-    return false;
-  }
+  }catch(e){ return false; }
 }
 function importTemplatePackJson(raw){
   let obj;
-  try{ obj = JSON.parse(raw); }catch(e){ throw new Error("That doesn’t look like valid JSON."); }
+  try{ obj = JSON.parse(raw); }catch(e){ throw new Error("That isn’t valid JSON."); }
   if(!obj || obj.type!=="template-pack" || obj.app!=="steady-log" || !Array.isArray(obj.templates)){
-    throw new Error("Not a Steady Log Template Pack.");
+    throw new Error("Not a Steady Log template pack.");
   }
   const cleaned = normalizeTemplates(obj.templates);
   if(!cleaned.length) throw new Error("Template pack is empty.");
@@ -325,17 +316,17 @@ function startTimer(seconds){
   timerInterval=setInterval(tick, 250);
 }
 
-// ---------- Views ----------
-const view = document.getElementById("view");
+// ---------- Navigation ----------
 let activeWorkout=null;
 
-let SETTINGS = loadSettings();
-let TEMPLATES = loadTemplates();
-
-function setPill(text){ document.getElementById("pillStatus").textContent = text; }
+function setPill(text){
+  const pill = document.getElementById("pillStatus");
+  if(pill) pill.textContent = text;
+}
 
 function resetFooterNav(){
   const wrap = document.querySelector(".footerbar .wrap");
+  if(!wrap) return;
   wrap.innerHTML = `
     <button class="btn ghost" id="navHome">Home</button>
     <button class="btn ghost" id="navHistory">History</button>
@@ -352,25 +343,27 @@ function resetFooterNav(){
 
 function setFooterActions(actions){
   const wrap = document.querySelector(".footerbar .wrap");
+  if(!wrap) return;
   wrap.innerHTML = actions.map((a,i)=>`<button class="btn ${a.cls||"ghost"}" data-foot="${i}">${a.label}</button>`).join("");
   wrap.querySelectorAll("[data-foot]").forEach(btn=>{
     btn.onclick = ()=> actions[Number(btn.dataset.foot)].onClick();
   });
 }
 
+// ---------- Views ----------
 function homeView(){
-  SETTINGS = loadSettings();
-  TEMPLATES = loadTemplates();
   setPill("Ready");
+  const templates = loadTemplates();
   const stats = computeStats();
   const lastText = stats.last ? fmtDate(stats.last) : "—";
+  const settings = loadSettings();
 
   view.innerHTML = `
     <div class="card">
       <h2>Start Workout</h2>
       <div class="hr"></div>
       <div class="grid">
-        ${TEMPLATES.map(t=>`
+        ${templates.map(t=>`
           <button class="btn primary" data-action="start" data-id="${t.id}">${escapeHtml(t.name)}<span class="tag">${escapeHtml(t.subtitle||"")}</span></button>
         `).join("")}
       </div>
@@ -378,7 +371,7 @@ function homeView(){
       <div class="list">
         <div class="exercise"><div class="exercise-name">${stats.total}</div><div class="exercise-meta">sessions logged</div></div>
         <div class="exercise"><div class="exercise-name">${lastText}</div><div class="exercise-meta">last session</div></div>
-        <div class="exercise"><div class="exercise-name">${(Number(loadSettings().restSeconds)||90)}s</div><div class="exercise-meta">default rest timer</div></div>
+        <div class="exercise"><div class="exercise-name">${Number(settings.restSeconds)||90}s</div><div class="exercise-meta">default rest timer</div></div>
       </div>
     </div>
 
@@ -408,9 +401,7 @@ function calcStreak(dates){
     if(set.has(d)){
       streak++;
       cur.setDate(cur.getDate()-1);
-    }else{
-      break;
-    }
+    }else break;
   }
   return streak;
 }
@@ -444,11 +435,11 @@ function trackerView(){
         </div>
         <div class="exercise">
           <div class="exercise-name">${streakWeight} 🔥</div>
-          <div class="exercise-meta">weight logging streak (days)</div>
+          <div class="exercise-meta">weight logging streak</div>
         </div>
         <div class="exercise">
           <div class="exercise-name">${streakMacros} 🍽️</div>
-          <div class="exercise-meta">macro logging streak (days)</div>
+          <div class="exercise-meta">macro logging streak</div>
         </div>
       </div>
     </div>
@@ -486,7 +477,7 @@ function trackerView(){
     if(!kg){ alert("Enter weight"); return; }
     const tt = loadTracker();
     tt.weights = (tt.weights||[]).filter(x=>x.date!==d);
-    tt.weights.push({date:d, kg:kg});
+    tt.weights.push({date:d, kg});
     saveTracker(tt);
     toast("Weight saved ✅");
     trackerView();
@@ -497,10 +488,7 @@ function trackerView(){
     const protein  = Number(document.getElementById("p").value);
     const carbs    = Number(document.getElementById("c").value);
     const fat      = Number(document.getElementById("f").value);
-    if(!calories || !protein || !carbs || !fat){
-      alert("Enter calories + P/C/F");
-      return;
-    }
+    if(!calories || !protein || !carbs || !fat){ alert("Enter calories + P/C/F"); return; }
     const tt = loadTracker();
     tt.macros = (tt.macros||[]).filter(x=>x.date!==d);
     tt.macros.push({date:d, calories, protein, carbs, fat});
@@ -514,7 +502,7 @@ function trackerView(){
     if(!cm){ alert("Enter waist"); return; }
     const tt = loadTracker();
     tt.waists = (tt.waists||[]).filter(x=>x.date!==d);
-    tt.waists.push({date:d, cm:cm});
+    tt.waists.push({date:d, cm});
     saveTracker(tt);
     toast("Waist saved ✅");
     trackerView();
@@ -523,8 +511,8 @@ function trackerView(){
 
 // ---------- Workout flow ----------
 function startWorkout(templateId){
-  TEMPLATES = loadTemplates();
-  const tpl = TEMPLATES.find(t=>t.id===templateId);
+  const templates = loadTemplates();
+  const tpl = templates.find(t=>t.id===templateId);
   if(!tpl) return;
 
   activeWorkout = {
@@ -550,7 +538,6 @@ function startWorkout(templateId){
   workoutView();
   toast(`${tpl.name} started`);
 }
-
 function saveDraft(){ sessionStorage.setItem("steadylog.draft", JSON.stringify(activeWorkout)); }
 
 function addSet(exIndex){
@@ -574,7 +561,8 @@ function toggleDone(exIndex,setIndex){
   saveDraft();
   workoutView();
   if(s.done){
-    const secs = Number(ex.rest)||Number(loadSettings().restSeconds)||90;
+    const def = Number(loadSettings().restSeconds)||90;
+    const secs = Number(ex.rest)||def;
     startTimer(secs);
   }
 }
@@ -586,12 +574,12 @@ function deleteSet(exIndex,setIndex){
 
 function workoutView(){
   setPill("In session");
-  const defaultRest = Number(loadSettings().restSeconds)||90;
+  const def = Number(loadSettings().restSeconds)||90;
 
   view.innerHTML = `
     <div class="card">
       <h2>${escapeHtml(activeWorkout.name)}<span class="tag">${escapeHtml(activeWorkout.subtitle||"")}</span></h2>
-      <div class="exercise-meta">Started: ${fmtDate(activeWorkout.startedAt)} • Default Rest: ${defaultRest}s</div>
+      <div class="exercise-meta">Started: ${fmtDate(activeWorkout.startedAt)} • Default Rest: ${def}s</div>
       <div class="hr"></div>
 
       <div class="section-title" style="margin-top:0;">Session Notes</div>
@@ -603,7 +591,7 @@ function workoutView(){
         ${activeWorkout.exercises.map((ex,idx)=>{
           const last = getLastSetsForExercise(ex.id);
           const lastStr = last.length ? last.slice(0,3).map(s=>`${s.kg}kg×${s.reps}`).join(", ") : "—";
-          const rest = Number(ex.rest)||defaultRest;
+          const rest = Number(ex.rest)||def;
           const vidBtn = ex.video ? `<button class="btn" style="width:auto;padding:10px 12px" data-vid="${idx}">▶ Video</button>` : "";
           return `
             <div class="exercise">
@@ -638,19 +626,25 @@ function workoutView(){
   `;
 
   document.getElementById("sessionNotes").oninput = (e)=> updateSessionNotes(e.target.value);
+
   view.querySelectorAll("[data-add]").forEach(b=> b.onclick = ()=> addSet(Number(b.dataset.add)));
   view.querySelectorAll("[data-exnote]").forEach(inp=> inp.oninput = (e)=> updateExerciseNote(Number(inp.dataset.exnote), e.target.value));
+
   view.querySelectorAll("[data-kg]").forEach(inp=> inp.oninput = (e)=>{
-    const [i,j]=inp.dataset.kg.split(":").map(Number); updateSet(i,j,"kg", e.target.value);
+    const [i,j]=inp.dataset.kg.split(":").map(Number);
+    updateSet(i,j,"kg", e.target.value);
   });
   view.querySelectorAll("[data-reps]").forEach(inp=> inp.oninput = (e)=>{
-    const [i,j]=inp.dataset.reps.split(":").map(Number); updateSet(i,j,"reps", e.target.value);
+    const [i,j]=inp.dataset.reps.split(":").map(Number);
+    updateSet(i,j,"reps", e.target.value);
   });
   view.querySelectorAll("[data-done]").forEach(btn=> btn.onclick = ()=>{
-    const [i,j]=btn.dataset.done.split(":").map(Number); toggleDone(i,j);
+    const [i,j]=btn.dataset.done.split(":").map(Number);
+    toggleDone(i,j);
   });
   view.querySelectorAll("[data-del]").forEach(btn=> btn.onclick = ()=>{
-    const [i,j]=btn.dataset.del.split(":").map(Number); deleteSet(i,j);
+    const [i,j]=btn.dataset.del.split(":").map(Number);
+    deleteSet(i,j);
   });
   view.querySelectorAll("[data-vid]").forEach(btn=> btn.onclick = ()=>{
     const i = Number(btn.dataset.vid);
@@ -660,8 +654,8 @@ function workoutView(){
 
   setFooterActions([
     {label:"Finish & Save", cls:"primary", onClick: finishWorkout},
-    {label:`Rest`, cls:"ghost", onClick: ()=> startTimer(Number(loadSettings().restSeconds)||90)},
-    {label:"Cancel", cls:"danger", onClick: cancelWorkout},
+    {label:"Rest", cls:"ghost", onClick: ()=> startTimer(def)},
+    {label:"Cancel", cls:"danger", onClick: cancelWorkout}
   ]);
 }
 
@@ -707,7 +701,6 @@ function historyView(){
   `;
   view.querySelectorAll("[data-open]").forEach(b=> b.onclick = ()=> sessionDetailView(b.dataset.open));
 }
-
 function sessionDetailView(id){
   const sessions=loadSessions();
   const s=sessions.find(x=>x.id===id);
@@ -771,7 +764,6 @@ function exercisesView(){
   view.querySelectorAll("[data-ex]").forEach(b=> b.onclick = ()=> exerciseDetailView(b.dataset.ex));
   document.getElementById("editTplFromEx").onclick = templatesView;
 }
-
 function exerciseDetailView(exId){
   const sessions=loadSessions();
   const entries=[];
@@ -831,8 +823,7 @@ function exportView(){
     </div>
   `;
 
-  document.getElementById("btnCsv").onclick = ()=> downloadCSV(loadSessions());
-
+  document.getElementById("btnCsv").onclick = ()=> downloadWorkoutCSV(loadSessions());
   document.getElementById("btnExportTracker").onclick = ()=>{
     const t = loadTracker();
     const csv = trackerToCSV(t);
@@ -844,13 +835,12 @@ function exportView(){
     const pack = makeTemplatePack();
     const raw = JSON.stringify(pack, null, 2);
     const ok = await copyToClipboard(raw);
-    toast(ok ? "Template Pack copied ✅" : "Copy failed — use Import paste ✅");
-    // If copy fails, show it so user can manually copy
+    toast(ok ? "Template Pack copied ✅" : "Copy failed — showing text ✅");
     if(!ok){
       view.innerHTML = `
         <div class="card">
           <h2>Template Pack</h2>
-          <div class="exercise-meta">Copy this text and send it to your mate.</div>
+          <div class="exercise-meta">Copy this text and send it to a mate.</div>
           <div class="hr"></div>
           <textarea class="input" style="min-height:260px; font-weight:600;" id="packBox">${escapeHtml(raw)}</textarea>
           <div class="hr"></div>
@@ -865,7 +855,7 @@ function exportView(){
     view.innerHTML = `
       <div class="card">
         <h2>Import Template Pack</h2>
-        <div class="exercise-meta">Paste the JSON here. This will replace your current templates.</div>
+        <div class="exercise-meta">Paste the JSON here. This replaces your templates.</div>
         <div class="hr"></div>
         <textarea class="input" style="min-height:260px; font-weight:600;" id="importBox" placeholder="{ ... }"></textarea>
         <div class="hr"></div>
@@ -877,7 +867,7 @@ function exportView(){
     document.getElementById("cancelImport").onclick = exportView;
     document.getElementById("doImport").onclick = ()=>{
       const raw = document.getElementById("importBox").value.trim();
-      if(!raw){ alert("Paste the Template Pack JSON"); return; }
+      if(!raw){ alert("Paste the template pack JSON"); return; }
       try{
         importTemplatePackJson(raw);
         toast("Templates imported ✅");
@@ -902,7 +892,7 @@ function exportView(){
 
 // ---------- Settings ----------
 function settingsView(){
-  SETTINGS=loadSettings();
+  const s = loadSettings();
   setPill("Settings");
   view.innerHTML = `
     <div class="card">
@@ -910,15 +900,17 @@ function settingsView(){
       <div class="exercise-meta">Used when an exercise has no rest set.</div>
       <div class="hr"></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        ${[60,90,120,150].map(s=>`<button class="btn ${SETTINGS.restSeconds===s?"primary":"ghost"}" style="width:auto" data-s="${s}">${s}s</button>`).join("")}
+        ${[60,90,120,150].map(x=>`<button class="btn ${s.restSeconds===x?"primary":"ghost"}" style="width:auto" data-s="${x}">${x}s</button>`).join("")}
       </div>
       <div class="hr"></div>
       <button class="btn" id="backHome">Back</button>
-    </div>`;
+    </div>
+  `;
   view.querySelectorAll("[data-s]").forEach(b=> b.onclick = ()=>{
-    SETTINGS.restSeconds = Number(b.dataset.s);
-    saveSettings(SETTINGS);
-    toast(`Default rest set to ${SETTINGS.restSeconds}s`);
+    const st = loadSettings();
+    st.restSeconds = Number(b.dataset.s);
+    saveSettings(st);
+    toast(`Default rest set to ${st.restSeconds}s`);
     settingsView();
   });
   document.getElementById("backHome").onclick = homeView;
@@ -926,20 +918,21 @@ function settingsView(){
 
 // ---------- Template editor ----------
 function templatesView(){
-  TEMPLATES = loadTemplates();
+  const tpls = loadTemplates();
   setPill("Templates");
   view.innerHTML = `
     <div class="card">
       <h2>Edit Templates</h2>
       <div class="hr"></div>
       <div class="list">
-        ${TEMPLATES.map(t=>`<button class="btn" data-tpl="${t.id}">${escapeHtml(t.name)}<span class="tag">${escapeHtml(t.subtitle||"")}</span></button>`).join("")}
+        ${tpls.map(t=>`<button class="btn" data-tpl="${t.id}">${escapeHtml(t.name)}<span class="tag">${escapeHtml(t.subtitle||"")}</span></button>`).join("")}
       </div>
       <div class="hr"></div>
       <button class="btn danger" id="resetTpl">Reset to default</button>
       <div style="height:10px"></div>
       <button class="btn" id="backTplHome">Back</button>
-    </div>`;
+    </div>
+  `;
   view.querySelectorAll("[data-tpl]").forEach(b=> b.onclick = ()=> templateEditView(b.dataset.tpl));
   document.getElementById("backTplHome").onclick = homeView;
   document.getElementById("resetTpl").onclick = ()=>{
@@ -952,11 +945,12 @@ function templatesView(){
 }
 
 function templateEditView(tplId){
-  TEMPLATES = loadTemplates();
-  const idx = TEMPLATES.findIndex(t=>t.id===tplId);
+  const tpls = loadTemplates();
+  const idx = tpls.findIndex(t=>t.id===tplId);
   if(idx<0){ templatesView(); return; }
-  const tpl = TEMPLATES[idx];
+  const tpl = tpls[idx];
   setPill("Edit");
+
   view.innerHTML = `
     <div class="card">
       <h2>${escapeHtml(tpl.name)}<span class="tag">${escapeHtml(tpl.subtitle||"")}</span></h2>
@@ -982,8 +976,10 @@ function templateEditView(tplId){
                 <button class="smallbtn del" data-del="${i}">🗑</button>
               </div>
             </div>
-          </div>`).join("")}
+          </div>
+        `).join("")}
       </div>
+
       <div class="hr"></div>
       <div style="display:flex;gap:10px">
         <button class="btn primary" id="addEx">+ Add Exercise</button>
@@ -991,7 +987,8 @@ function templateEditView(tplId){
       </div>
       <div style="height:10px"></div>
       <button class="btn" id="backTpls">Back</button>
-    </div>`;
+    </div>
+  `;
 
   view.querySelectorAll("[data-edit]").forEach(inp=>{
     inp.oninput = ()=>{
@@ -1009,7 +1006,7 @@ function templateEditView(tplId){
       const j = btn.dataset.move==="up" ? i-1 : i+1;
       if(j<0 || j>=tpl.exercises.length) return;
       const tmp=tpl.exercises[i]; tpl.exercises[i]=tpl.exercises[j]; tpl.exercises[j]=tmp;
-      TEMPLATES[idx]=tpl; saveTemplates(TEMPLATES);
+      tpls[idx]=tpl; saveTemplates(tpls);
       templateEditView(tplId);
     };
   });
@@ -1019,7 +1016,7 @@ function templateEditView(tplId){
       const i=Number(btn.dataset.del);
       if(confirm("Delete this exercise?")){
         tpl.exercises.splice(i,1);
-        TEMPLATES[idx]=tpl; saveTemplates(TEMPLATES);
+        tpls[idx]=tpl; saveTemplates(tpls);
         templateEditView(tplId);
       }
     };
@@ -1027,13 +1024,15 @@ function templateEditView(tplId){
 
   document.getElementById("addEx").onclick = ()=>{
     tpl.exercises.push({id:crypto.randomUUID(), name:"New Exercise", sets:3, reps:"10–12", rest:90, video:""});
-    TEMPLATES[idx]=tpl; saveTemplates(TEMPLATES);
+    tpls[idx]=tpl; saveTemplates(tpls);
     templateEditView(tplId);
   };
+
   document.getElementById("saveTplBtn").onclick = ()=>{
-    TEMPLATES[idx]=tpl; saveTemplates(TEMPLATES);
+    tpls[idx]=tpl; saveTemplates(tpls);
     toast("Template saved ✅");
   };
+
   document.getElementById("backTpls").onclick = templatesView;
 }
 
@@ -1042,18 +1041,19 @@ function boot(){
   if("serviceWorker" in navigator){
     navigator.serviceWorker.register("./sw.js").catch(()=>{});
   }
+  resetFooterNav();
+
   const draft = sessionStorage.getItem("steadylog.draft");
   if(draft){
     try{
       activeWorkout = JSON.parse(draft);
       workoutView();
-      resetFooterNav();
       return;
     }catch(e){
       sessionStorage.removeItem("steadylog.draft");
     }
   }
-  resetFooterNav();
   homeView();
 }
+
 boot();
