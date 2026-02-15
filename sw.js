@@ -1,47 +1,33 @@
-// Steady Log Service Worker (Cache-Safe Version)
-
-const CACHE_NAME = "steady-log-v3"; // <-- bump version when updating
-
-const FILES_TO_CACHE = [
+// Cache-safe service worker (version bump = forced refresh)
+const CACHE = "steady-log-cache-v3";
+const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
-  "./manifest.json"
+  "./manifest.json",
+  "./icon-192.png",
+  "./icon-512.png"
 ];
 
-// Install
-self.addEventListener("install", event => {
+self.addEventListener("install", (e) => {
   self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(FILES_TO_CACHE))
-  );
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
 });
 
-// Activate (delete old caches)
-self.addEventListener("activate", event => {
-  event.waitUntil(
+self.addEventListener("activate", (e) => {
+  e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(
-        keys.map(key => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-        })
-      )
+      Promise.all(keys.map(k => (k !== CACHE ? caches.delete(k) : null)))
     )
   );
   self.clients.claim();
 });
 
-// Fetch (network first, then cache fallback)
-self.addEventListener("fetch", event => {
-  event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        return response;
-      })
-      .catch(() => caches.match(event.request))
+// Network-first for html/js/css, cache fallback for offline
+self.addEventListener("fetch", (e) => {
+  const req = e.request;
+  e.respondWith(
+    fetch(req).then(res => res).catch(() => caches.match(req))
   );
 });
