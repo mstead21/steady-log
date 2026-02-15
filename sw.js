@@ -1,33 +1,57 @@
-// Cache-safe service worker (version bump = forced refresh)
-const CACHE = "steady-log-cache-v3";
+// Steady Log Service Worker — Premium V2
+// Cache version bump forces fresh assets after updates.
+const CACHE = "steady-log-v2-20260215-1";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
-  "./manifest.json",
-  "./icon-192.png",
-  "./icon-512.png"
+  "./icon.png",
+  "./manifest.webmanifest"
 ];
 
-self.addEventListener("install", (e) => {
-  self.skipWaiting();
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
+self.addEventListener("install", (event) => {
+  event.waitUntil((async()=>{
+    const cache = await caches.open(CACHE);
+    await cache.addAll(ASSETS);
+    self.skipWaiting();
+  })());
 });
 
-self.addEventListener("activate", (e) => {
-  e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.map(k => (k !== CACHE ? caches.delete(k) : null)))
-    )
-  );
-  self.clients.claim();
+self.addEventListener("activate", (event) => {
+  event.waitUntil((async()=>{
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => (k !== CACHE) ? caches.delete(k) : Promise.resolve()));
+    self.clients.claim();
+  })());
 });
 
-// Network-first for html/js/css, cache fallback for offline
-self.addEventListener("fetch", (e) => {
-  const req = e.request;
-  e.respondWith(
-    fetch(req).then(res => res).catch(() => caches.match(req))
-  );
+self.addEventListener("fetch", (event) => {
+  const req = event.request;
+
+  // Network-first for HTML (so updates show)
+  if(req.mode === "navigate"){
+    event.respondWith((async()=>{
+      try{
+        const fresh = await fetch(req);
+        const cache = await caches.open(CACHE);
+        cache.put(req, fresh.clone());
+        return fresh;
+      }catch(e){
+        const cached = await caches.match(req);
+        return cached || caches.match("./index.html");
+      }
+    })());
+    return;
+  }
+
+  // Cache-first for static assets
+  event.respondWith((async()=>{
+    const cached = await caches.match(req);
+    if(cached) return cached;
+    const fresh = await fetch(req);
+    const cache = await caches.open(CACHE);
+    cache.put(req, fresh.clone());
+    return fresh;
+  })());
 });
