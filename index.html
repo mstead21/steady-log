@@ -4,38 +4,50 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0c0c10" />
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Steady Log</title>
 
-  <link rel="manifest" href="./manifest.webmanifest?v=sl-p1" />
-  <link rel="icon" href="./icon-192.png" />
-  <link rel="apple-touch-icon" href="./icon-192.png" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
 
-  <link rel="stylesheet" href="./styles.css?v=sl-p1" />
+  <link rel="stylesheet" href="./styles.css?v=2026-02-15-premium" />
 </head>
 <body>
   <div class="container">
-    <div class="header">
+    <header class="header">
       <div class="brand">
-        <img class="logo" src="./icon-192.png" alt="SL" />
+        <img class="logo" src="./icons/icon-192.png" alt="Steady Log" />
         <div>
-          <h1>Steady Log</h1>
+          <div class="titleRow">
+            <h1>Steady Log</h1>
+            <span class="pill" id="pillStatus">Ready</span>
+          </div>
           <div class="sub">Weights-only • Dark mode • Offline</div>
         </div>
       </div>
-      <div class="pill" id="pillStatus">Ready</div>
-    </div>
+      <button class="btn ghost btnSmall" id="btnDashboard">Dashboard</button>
+    </header>
 
-    <div id="view"></div>
+    <main id="view"></main>
   </div>
-
-  <div class="toast" id="toast">Saved</div>
 
   <div class="footerbar">
     <div class="wrap" id="footerWrap"></div>
   </div>
 
-  <script src="./app.js?v=sl-p1"></script>
+  <div class="toast" id="toast"></div>
+
+  <div class="modal" id="modal" hidden>
+    <div class="modalCard">
+      <div class="modalHead">
+        <div class="modalTitle" id="modalTitle">Video</div>
+        <button class="btn danger btnSmall" id="modalClose">Close</button>
+      </div>
+      <div class="hr"></div>
+      <div class="modalBody" id="modalBody"></div>
+    </div>
+  </div>
+
+  <script defer src="./app.js?v=2026-02-15-premium"></script>
 </body>
 </html>

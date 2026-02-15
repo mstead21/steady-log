@@ -1,43 +1,36 @@
-/* Steady Log Service Worker - Premium vP1 */
-const CACHE_NAME = "steady-log-cache-vp1";
-
+// Simple offline cache
+const CACHE = "steady-log-premium-2026-02-15";
 const ASSETS = [
   "./",
-  "./index.html?v=sl-p1",
-  "./styles.css?v=sl-p1",
-  "./app.js?v=sl-p1",
-  "./manifest.webmanifest?v=sl-p1",
-  "./icon-192.png",
-  "./icon-512.png",
+  "./index.html",
+  "./styles.css?v=2026-02-15-premium",
+  "./app.js?v=2026-02-15-premium",
+  "./manifest.json",
+  "./icons/icon-192.png",
+  "./icons/icon-512.png",
+  "./icons/apple-touch-icon.png"
 ];
 
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+self.addEventListener("install", (e) => {
+  e.waitUntil(
+    caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(()=>self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.map((k) => (k !== CACHE_NAME ? caches.delete(k) : null)))
-    )
+self.addEventListener("activate", (e) => {
+  e.waitUntil(
+    caches.keys().then(keys => Promise.all(keys.map(k => k!==CACHE ? caches.delete(k) : null)))
+      .then(()=>self.clients.claim())
   );
-  self.clients.claim();
 });
 
-self.addEventListener("fetch", (event) => {
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return (
-        cached ||
-        fetch(event.request).then((resp) => {
-          const copy = resp.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-          return resp;
-        }).catch(() => cached)
-      );
-    })
+self.addEventListener("fetch", (e) => {
+  const req = e.request;
+  e.respondWith(
+    caches.match(req).then(cached => cached || fetch(req).then(res=>{
+      const copy = res.clone();
+      caches.open(CACHE).then(cache=>cache.put(req, copy)).catch(()=>{});
+      return res;
+    }).catch(()=>cached))
   );
 });
