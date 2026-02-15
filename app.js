@@ -1,20 +1,20 @@
-/* Steady Log - PREMIUM v2
-   - Per-exercise rest timer + default fallback
-   - Suggested KG from last session
-   - Notes per session + per exercise
-   - PRs + recent progress
-   - Editable templates (name/sets/reps/rest/video) + reorder
-   - Tracker: weight (daily), waist (weekly), macros (daily), targets, trends + streaks
+/* Steady Log (V1.4 PREMIUM) - iPhone PWA
+   - Dashboard (tiles + streak + trends + macros)
+   - Per-exercise rest seconds + ✓ auto-starts that rest
+   - Weight + Waist + Macros daily log
+   - Templates editor
+   - Video links per exercise (reliable YouTube search URLs)
    - Export: workouts CSV + tracker CSV
 */
+const VERSION = "1.4";
 
-const STORAGE_KEY = "steadylog.sessions.v3";
-const SETTINGS_KEY = "steadylog.settings.v3";
-const TEMPLATES_KEY = "steadylog.templates.v3";
-const TRACKER_KEY  = "steadylog.tracker.v2";
+const STORAGE_KEY  = "steadylog.sessions.v2";
+const SETTINGS_KEY = "steadylog.settings.v2";
+const TEMPLATES_KEY= "steadylog.templates.v2";
+const TRACKER_KEY  = "steadylog.tracker.v2"; // bumped
 
-// Your targets (as requested)
-const DEFAULT_MACRO_TARGETS = { kcal: 2010, p: 210, c: 180, f: 50 };
+// Your targets
+const MACRO_TARGETS = { calories:2010, protein:210, carbs:180, fat:50 };
 
 const DEFAULT_TEMPLATES = [
   {
@@ -22,12 +22,12 @@ const DEFAULT_TEMPLATES = [
     name: "Upper A",
     subtitle: "Chest & Arms",
     exercises: [
-      { id:"smith_incline", name:"Smith Incline Bench Press", sets:3, reps:"6–8",  rest:120, video:"https://www.youtube.com/results?search_query=smith+incline+bench+press+proper+form" },
-      { id:"row_chest_supported", name:"Chest Supported Row (Plate)", sets:3, reps:"8–12", rest:90,  video:"https://www.youtube.com/results?search_query=chest+supported+row+machine+proper+form" },
-      { id:"chest_press_plate", name:"Chest Press Plate Loaded (Flat)", sets:3, reps:"8–10", rest:90, video:"https://www.youtube.com/results?search_query=plate+loaded+chest+press+machine+proper+form" },
-      { id:"shoulder_press_plate", name:"Shoulder Press Plate Machine", sets:3, reps:"8–10", rest:90,  video:"https://www.youtube.com/results?search_query=plate+loaded+shoulder+press+machine+proper+form" },
-      { id:"tri_pushdown", name:"Cable Tricep Pushdown", sets:3, reps:"10–15", rest:60, video:"https://www.youtube.com/results?search_query=cable+tricep+pushdown+proper+form" },
-      { id:"preacher_curl", name:"Preacher Curl Machine", sets:3, reps:"10–15", rest:60, video:"https://www.youtube.com/results?search_query=preacher+curl+machine+proper+form" },
+      { id:"smith_incline", name:"Smith Incline Bench Press", sets:3, reps:"6–8",  rest:120, video:qVid("smith incline bench press") },
+      { id:"chest_row",    name:"Chest Supported Row Machine (Plate)", sets:3, reps:"8–12", rest:90,  video:qVid("chest supported row machine plate loaded") },
+      { id:"chest_press",  name:"Chest Press Plate Loaded (Flat)", sets:3, reps:"8–10", rest:90,  video:qVid("plate loaded chest press machine") },
+      { id:"shoulder_press", name:"Shoulder Press Plate Machine", sets:3, reps:"8–10", rest:90, video:qVid("plate loaded shoulder press machine") },
+      { id:"tri_pushdown", name:"Cable Tricep Pushdown", sets:3, reps:"10–15", rest:60, video:qVid("cable tricep pushdown") },
+      { id:"preacher_curl", name:"Preacher Curl Machine", sets:3, reps:"10–15", rest:60, video:qVid("preacher curl machine") },
     ]
   },
   {
@@ -35,11 +35,11 @@ const DEFAULT_TEMPLATES = [
     name: "Lower A",
     subtitle: "Quads & Burn",
     exercises: [
-      { id:"smith_squat", name:"Smith Squat", sets:4, reps:"6–8", rest:120, video:"https://www.youtube.com/results?search_query=smith+machine+squat+proper+form" },
-      { id:"leg_press", name:"45° Leg Press", sets:3, reps:"10–15", rest:90, video:"https://www.youtube.com/results?search_query=45+degree+leg+press+proper+form" },
-      { id:"walking_lunges", name:"Walking Lunges", sets:2, reps:"20 steps", rest:90, video:"https://www.youtube.com/results?search_query=walking+lunges+proper+form" },
-      { id:"leg_ext", name:"Leg Extension", sets:3, reps:"12–15", rest:60, video:"https://www.youtube.com/results?search_query=leg+extension+machine+proper+form" },
-      { id:"standing_calves", name:"Standing Calf Raise", sets:3, reps:"15–20", rest:60, video:"https://www.youtube.com/results?search_query=standing+calf+raise+machine+proper+form" },
+      { id:"smith_squat", name:"Smith Squat", sets:4, reps:"6–8", rest:120, video:qVid("smith machine squat") },
+      { id:"leg_press", name:"45° Leg Press", sets:3, reps:"10–15", rest:90, video:qVid("45 degree leg press") },
+      { id:"walking_lunges", name:"Walking Lunges", sets:2, reps:"20 steps", rest:90, video:qVid("walking lunges") },
+      { id:"leg_ext", name:"Leg Extension", sets:3, reps:"12–15", rest:60, video:qVid("leg extension machine") },
+      { id:"standing_calves", name:"Standing Calf Raise", sets:3, reps:"15–20", rest:60, video:qVid("standing calf raise machine") },
     ]
   },
   {
@@ -47,12 +47,12 @@ const DEFAULT_TEMPLATES = [
     name: "Upper B",
     subtitle: "Back & Shoulders",
     exercises: [
-      { id:"assist_pullup", name:"Assisted Pull-Up Machine", sets:3, reps:"6–10", rest:120, video:"https://www.youtube.com/results?search_query=assisted+pull+up+machine+proper+form" },
-      { id:"seated_row", name:"Seated Row", sets:3, reps:"8–12", rest:90, video:"https://www.youtube.com/results?search_query=seated+cable+row+proper+form" },
-      { id:"rear_delt", name:"Rear Delt Machine", sets:3, reps:"12–15", rest:60, video:"https://www.youtube.com/results?search_query=rear+delt+machine+proper+form" },
-      { id:"face_pull", name:"Face Pull (Cable)", sets:3, reps:"12–15", rest:60, video:"https://www.youtube.com/results?search_query=face+pull+proper+form" },
-      { id:"pec_deck", name:"Pec Deck (Light Pump)", sets:2, reps:"12–15", rest:60, video:"https://www.youtube.com/results?search_query=pec+deck+fly+machine+proper+form" },
-      { id:"hammer_curl", name:"Hammer Curl", sets:3, reps:"10–12", rest:60, video:"https://www.youtube.com/results?search_query=dumbbell+hammer+curl+proper+form" },
+      { id:"assist_pullup", name:"Assisted Pull-Up Machine", sets:3, reps:"6–10", rest:120, video:qVid("assisted pull up machine") },
+      { id:"seated_row", name:"Seated Row", sets:3, reps:"8–12", rest:90, video:qVid("seated cable row") },
+      { id:"rear_delt", name:"Rear Delt Machine", sets:3, reps:"12–15", rest:60, video:qVid("rear delt machine") },
+      { id:"face_pull", name:"Face Pull (Cable)", sets:3, reps:"12–15", rest:60, video:qVid("face pull cable") },
+      { id:"pec_deck", name:"Pec Deck / Fly (Light Pump Work)", sets:2, reps:"12–15", rest:60, video:qVid("pec deck fly machine") },
+      { id:"hammer_curl", name:"DB Hammer Curl", sets:3, reps:"10–12", rest:60, video:qVid("dumbbell hammer curl") },
     ]
   },
   {
@@ -60,14 +60,18 @@ const DEFAULT_TEMPLATES = [
     name: "Lower B",
     subtitle: "Hamstrings & Glutes",
     exercises: [
-      { id:"smith_rdl", name:"Smith Romanian Deadlift", sets:3, reps:"6–8", rest:120, video:"https://www.youtube.com/results?search_query=smith+machine+romanian+deadlift+proper+form" },
-      { id:"hip_thrust", name:"Hip Thrust Machine", sets:3, reps:"8–10", rest:90, video:"https://www.youtube.com/results?search_query=hip+thrust+machine+proper+form" },
-      { id:"lying_curl", name:"Lying Leg Curl", sets:3, reps:"10–12", rest:90, video:"https://www.youtube.com/results?search_query=lying+leg+curl+machine+proper+form" },
-      { id:"smith_split", name:"Smith Split Squat", sets:2, reps:"10 / leg", rest:90, video:"https://www.youtube.com/results?search_query=smith+machine+split+squat+proper+form" },
-      { id:"seated_calves", name:"Seated Calf Raise", sets:3, reps:"15–20", rest:60, video:"https://www.youtube.com/results?search_query=seated+calf+raise+machine+proper+form" },
+      { id:"smith_rdl", name:"Smith Romanian Deadlift", sets:3, reps:"6–8", rest:120, video:qVid("smith machine romanian deadlift") },
+      { id:"hip_thrust", name:"Hip Thrust Machine", sets:3, reps:"8–10", rest:90, video:qVid("hip thrust machine") },
+      { id:"lying_curl", name:"Lying Leg Curl", sets:3, reps:"10–12", rest:90, video:qVid("lying leg curl machine") },
+      { id:"smith_split", name:"Smith Split Squat", sets:2, reps:"10 / leg", rest:90, video:qVid("smith machine split squat") },
+      { id:"seated_calves", name:"Seated Calf Raise", sets:3, reps:"15–20", rest:60, video:qVid("seated calf raise machine") },
     ]
   }
 ];
+
+function qVid(q){
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(q + " proper form")}`;
+}
 
 function nowISO(){ return new Date().toISOString(); }
 function todayYMD(){ return new Date().toISOString().slice(0,10); }
@@ -75,7 +79,6 @@ function fmtDate(iso){
   const d = new Date(iso);
   return d.toLocaleString(undefined, { weekday:"short", year:"numeric", month:"short", day:"numeric", hour:"2-digit", minute:"2-digit" });
 }
-
 function toast(msg){
   const t = document.getElementById("toast");
   t.textContent = msg;
@@ -91,12 +94,15 @@ function loadJSON(key, fallback){
 }
 function saveJSON(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
 
+function avg(arr){
+  if(!arr.length) return 0;
+  return arr.reduce((a,b)=>a+b,0)/arr.length;
+}
+
 function loadSessions(){ return loadJSON(STORAGE_KEY, []); }
 function saveSessions(s){ saveJSON(STORAGE_KEY, s); }
 
-function loadSettings(){
-  return loadJSON(SETTINGS_KEY, { restSeconds: 90, macroTargets: DEFAULT_MACRO_TARGETS });
-}
+function loadSettings(){ return loadJSON(SETTINGS_KEY, { defaultRestSeconds: 90 }); }
 function saveSettings(s){ saveJSON(SETTINGS_KEY, s); }
 
 function loadTemplates(){
@@ -107,18 +113,31 @@ function loadTemplates(){
 function saveTemplates(t){ saveJSON(TEMPLATES_KEY, t); }
 
 function loadTracker(){
+  // weights: [{date,kg}], waists:[{date,cm}], macros:[{date,calories,protein,carbs,fat}]
   return loadJSON(TRACKER_KEY, { weights: [], waists: [], macros: [] });
 }
 function saveTracker(t){ saveJSON(TRACKER_KEY, t); }
 
-function avg(arr){
-  if(!arr.length) return 0;
-  return arr.reduce((a,b)=>a+b,0)/arr.length;
+function trackerToCSV(tracker){
+  const rows = [];
+  rows.push("type,date,value,calories,protein,carbs,fat");
+
+  (tracker.weights||[]).forEach(w=>{
+    rows.push(`weight,${w.date},${w.kg},,,,`);
+  });
+
+  (tracker.waists||[]).forEach(w=>{
+    rows.push(`waist,${w.date},${w.cm},,,,`);
+  });
+
+  (tracker.macros||[]).forEach(m=>{
+    rows.push(`macros,${m.date},,${m.calories},${m.protein},${m.carbs},${m.fat}`);
+  });
+
+  return rows.join("\n");
 }
-function clampNum(v){
-  const n = Number(v);
-  return Number.isFinite(n) ? n : 0;
-}
+
+function setPill(text){ document.getElementById("pillStatus").textContent = text; }
 
 function escapeHtml(str){
   return String(str)
@@ -136,20 +155,7 @@ function escapeAttr(str){
     .replaceAll('"',"&quot;");
 }
 
-function setPill(text){ document.getElementById("pillStatus").textContent = text; }
-
-/* Link opener (fixes iPhone PWA "button doesn't open" issues) */
-function openLink(url){
-  if(!url) return;
-  // In iOS PWA, window.open can fail. This works reliably:
-  try{
-    window.location.href = url;
-  }catch(e){
-    try{ window.open(url, "_blank"); }catch(_){}
-  }
-}
-
-/* Suggested KG = last working set from last session */
+/* Suggested KG from last session for exercise */
 function getLastSetsForExercise(exId){
   const sessions = loadSessions();
   for(let i=sessions.length-1;i>=0;i--){
@@ -169,58 +175,65 @@ function getSuggestedKg(exId){
   return (Number(last.kg) || "");
 }
 
-/* Stats + PRs */
-function computeStats(){
-  const sessions = loadSessions();
-  const total = sessions.length;
-  const last = total ? sessions[sessions.length-1].startedAt : null;
+/* Stats / Streak / Trends */
+function ymdFromISO(iso){ return new Date(iso).toISOString().slice(0,10); }
 
-  const best = {};
-  for(const ses of sessions){
-    for(const ex of ses.exercises){
-      for(const st of (ex.sets||[])){
-        const kg = Number(st.kg)||0, reps = Number(st.reps)||0;
-        if(!best[ex.id] || kg>best[ex.id].kg || (kg===best[ex.id].kg && reps>best[ex.id].reps)){
-          best[ex.id] = {kg,reps,at:ses.startedAt};
-        }
-      }
-    }
-  }
-  return {total,last,best};
-}
-
-/* Streaks */
-function workoutStreak(){
+function computeStreak(){
   const sessions = loadSessions();
   if(!sessions.length) return 0;
-  const days = new Set(sessions.map(s => new Date(s.startedAt).toISOString().slice(0,10)));
-  const sorted = Array.from(days).sort();
-  let streak = 1;
-  for(let i=sorted.length-1;i>0;i--){
-    const d1 = new Date(sorted[i]);
-    const d0 = new Date(sorted[i-1]);
-    const diff = (d1 - d0) / 86400000;
-    if(diff === 1) streak++;
-    else if(diff === 0) continue;
-    else break;
+
+  // unique workout days
+  const days = Array.from(new Set(sessions.map(s=>ymdFromISO(s.startedAt)))).sort();
+  const set = new Set(days);
+
+  // streak up to today (or up to last workout day if you haven't trained today)
+  let cursor = days[days.length-1];
+  let streak = 0;
+
+  while(set.has(cursor)){
+    streak++;
+    const d = new Date(cursor+"T00:00:00");
+    d.setDate(d.getDate()-1);
+    cursor = d.toISOString().slice(0,10);
   }
   return streak;
 }
-function macroStreak(){
+
+function startOfWeek(d){
+  const dt = new Date(d);
+  const day = dt.getDay(); // 0 Sun
+  const diff = (day===0?6:day-1); // Monday start
+  dt.setDate(dt.getDate()-diff);
+  dt.setHours(0,0,0,0);
+  return dt;
+}
+
+function sessionsThisWeek(){
+  const sessions = loadSessions();
+  const start = startOfWeek(new Date());
+  return sessions.filter(s=> new Date(s.startedAt) >= start).length;
+}
+
+function weightTrends(){
   const t = loadTracker();
-  const days = new Set((t.macros||[]).map(m => m.date));
-  if(!days.size) return 0;
-  const sorted = Array.from(days).sort();
-  let streak = 1;
-  for(let i=sorted.length-1;i>0;i--){
-    const d1 = new Date(sorted[i]);
-    const d0 = new Date(sorted[i-1]);
-    const diff = (d1 - d0) / 86400000;
-    if(diff === 1) streak++;
-    else if(diff === 0) continue;
-    else break;
-  }
-  return streak;
+  const w = (t.weights||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
+  if(w.length < 2) return {avg7:0, delta7:0, last: null};
+
+  const last7 = w.slice(-7).map(x=>Number(x.kg)||0).filter(x=>x>0);
+  const prev7 = w.slice(-14,-7).map(x=>Number(x.kg)||0).filter(x=>x>0);
+
+  const avg7 = last7.length ? avg(last7) : 0;
+  const avgPrev = prev7.length ? avg(prev7) : 0;
+  const delta7 = (avgPrev && avg7) ? (avg7 - avgPrev) : 0;
+
+  return {avg7, delta7, last: w[w.length-1]};
+}
+
+function macroToday(){
+  const t = loadTracker();
+  const d = todayYMD();
+  const m = (t.macros||[]).find(x=>x.date===d);
+  return m || {date:d, calories:0, protein:0, carbs:0, fat:0};
 }
 
 /* Rest Timer overlay */
@@ -244,6 +257,7 @@ function startTimer(seconds){
   overlay.style.display="flex";
   overlay.style.alignItems="center";
   overlay.style.justifyContent="center";
+  overlay.style.zIndex="9999";
 
   overlay.innerHTML = `
     <div style="width:min(420px,92vw); background:rgba(20,20,27,.92); border:1px solid rgba(255,255,255,.14); border-radius:20px; padding:18px; box-shadow: 0 20px 60px rgba(0,0,0,.45);">
@@ -289,224 +303,250 @@ function startTimer(seconds){
 
 /* Views */
 const view = document.getElementById("view");
-const footerWrap = document.getElementById("footerWrap");
-
 let SETTINGS = loadSettings();
 let TEMPLATES = loadTemplates();
 let activeWorkout=null;
 
-function setFooterNav(){
-  footerWrap.innerHTML = `
+function resetFooterNav(){
+  const wrap = document.querySelector(".footerbar .wrap");
+  wrap.innerHTML = `
     <button class="btn ghost" id="navHome">Home</button>
     <button class="btn ghost" id="navHistory">History</button>
     <button class="btn ghost" id="navExercises">Exercises</button>
     <button class="btn ghost" id="navTracker">Tracker</button>
     <button class="btn ghost" id="navExport">Export</button>
   `;
-  document.getElementById("navHome").onclick = ()=>{ stopTimer(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); homeView(); setFooterNav(); };
-  document.getElementById("navHistory").onclick = ()=>{ stopTimer(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); historyView(); setFooterNav(); };
-  document.getElementById("navExercises").onclick = ()=>{ stopTimer(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); exercisesView(); setFooterNav(); };
-  document.getElementById("navTracker").onclick = ()=>{ stopTimer(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); trackerView(); setFooterNav(); };
-  document.getElementById("navExport").onclick = ()=>{ stopTimer(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); exportView(); setFooterNav(); };
+  document.getElementById("navHome").onclick = ()=>{ stopTimer(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); homeView(); resetFooterNav(); };
+  document.getElementById("navHistory").onclick = ()=>{ stopTimer(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); historyView(); resetFooterNav(); };
+  document.getElementById("navExercises").onclick = ()=>{ stopTimer(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); exercisesView(); resetFooterNav(); };
+  document.getElementById("navTracker").onclick = ()=>{ stopTimer(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); trackerView(); resetFooterNav(); };
+  document.getElementById("navExport").onclick = ()=>{ stopTimer(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); exportView(); resetFooterNav(); };
 }
+
 function setFooterActions(actions){
-  footerWrap.innerHTML = actions.map((a,i)=>`<button class="btn ${a.cls||"ghost"}" data-foot="${i}">${a.label}</button>`).join("");
-  footerWrap.querySelectorAll("[data-foot]").forEach(btn=>{
+  const wrap = document.querySelector(".footerbar .wrap");
+  wrap.innerHTML = actions.map((a,i)=>`<button class="btn ${a.cls||"ghost"}" data-foot="${i}">${a.label}</button>`).join("");
+  wrap.querySelectorAll("[data-foot]").forEach(btn=>{
     btn.onclick = ()=> actions[Number(btn.dataset.foot)].onClick();
   });
 }
 
-/* HOME */
 function homeView(){
   SETTINGS = loadSettings();
   TEMPLATES = loadTemplates();
-
   setPill("Ready");
-  const stats = computeStats();
-  const lastText = stats.last ? fmtDate(stats.last) : "—";
 
-  const ws = workoutStreak();
-  const ms = macroStreak();
+  const sessions = loadSessions();
+  const lastText = sessions.length ? fmtDate(sessions[sessions.length-1].startedAt) : "—";
+  const streak = computeStreak();
+  const thisWeek = sessionsThisWeek();
 
-  const t = loadTracker();
-  const wSorted = (t.weights||[]).slice().sort((a,b)=> (a.date>b.date?1:-1));
-  const last7 = wSorted.slice(-7);
-  const last7Avg = last7.length ? avg(last7.map(x=>Number(x.kg)||0)) : 0;
+  const wt = weightTrends();
+  const trendArrow = wt.delta7 === 0 ? "→" : (wt.delta7 < 0 ? "↓" : "↑");
+  const trendText = (wt.avg7 ? wt.avg7.toFixed(1) : "—");
+  const deltaText = (wt.delta7 ? `${trendArrow} ${Math.abs(wt.delta7).toFixed(1)}kg` : "—");
 
-  const last14 = wSorted.slice(-14);
-  const prev7 = last14.length >= 14 ? last14.slice(0,7) : [];
-  const prev7Avg = prev7.length ? avg(prev7.map(x=>Number(x.kg)||0)) : 0;
-  const wkChange = (prev7Avg && last7Avg) ? (last7Avg - prev7Avg) : 0;
-
-  const waistSorted = (t.waists||[]).slice().sort((a,b)=> (a.date>b.date?1:-1));
-  const waistLast = waistSorted.slice(-1)[0];
-  const waistPrev = waistSorted.length >= 2 ? waistSorted[waistSorted.length-2] : null;
-  const waistChange = (waistLast && waistPrev) ? (Number(waistLast.cm)-Number(waistPrev.cm)) : 0;
+  const m = macroToday();
 
   view.innerHTML = `
     <div class="card">
-      <h2>Start Workout</h2>
+      <h2>Dashboard</h2>
+      <div class="exercise-meta">Targets: ${MACRO_TARGETS.calories} kcal • P ${MACRO_TARGETS.protein} • C ${MACRO_TARGETS.carbs} • F ${MACRO_TARGETS.fat}</div>
       <div class="hr"></div>
+
+      <div class="tilegrid">
+        <div class="tile"><div class="big">${sessions.length}</div><div class="small">sessions logged</div></div>
+        <div class="tile"><div class="big">${streak} 🔥</div><div class="small">workout streak</div></div>
+        <div class="tile"><div class="big">${thisWeek} ✅</div><div class="small">sessions this week</div></div>
+        <div class="tile"><div class="big">${trendText}</div><div class="small">7-day avg weight • ${deltaText}</div></div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="section-title" style="margin-top:0;">Start Workout</div>
       <div class="grid">
         ${TEMPLATES.map(t=>`
-          <button class="btn primary" data-action="start" data-id="${t.id}">${t.name}<span class="tag">${t.subtitle||""}</span></button>
+          <button class="btn primary" data-action="start" data-id="${t.id}">
+            ${t.name}<span class="tag">${t.subtitle||""}</span>
+          </button>
         `).join("")}
       </div>
 
       <div class="hr"></div>
-
       <div class="list">
-        <div class="exercise"><div class="exercise-name">${stats.total}</div><div class="exercise-meta">sessions logged</div></div>
-        <div class="exercise"><div class="exercise-name">${lastText}</div><div class="exercise-meta">last session</div></div>
-        <div class="exercise"><div class="exercise-name">${ws} 🔥</div><div class="exercise-meta">workout streak</div></div>
-        <div class="exercise"><div class="exercise-name">${ms} ✅</div><div class="exercise-meta">macro log streak</div></div>
+        <div class="exercise">
+          <div class="exercise-name">Last session</div>
+          <div class="exercise-meta">${lastText}</div>
+        </div>
       </div>
     </div>
 
-    <div class="section-title">Trends</div>
+    <div class="section-title">Today’s Macros</div>
     <div class="card">
-      <div class="list">
-        <div class="exercise">
-          <div class="exercise-name">${last7Avg ? last7Avg.toFixed(1)+" kg" : "—"}</div>
-          <div class="exercise-meta">7-day average weight</div>
-        </div>
-        <div class="exercise">
-          <div class="exercise-name">${prev7Avg ? (wkChange>0?"+":"") + wkChange.toFixed(1)+" kg" : "—"}</div>
-          <div class="exercise-meta">weekly change (avg vs prior week)</div>
-        </div>
-        <div class="exercise">
-          <div class="exercise-name">${waistLast ? waistLast.cm + " cm" : "—"}</div>
-          <div class="exercise-meta">latest waist</div>
-        </div>
-        <div class="exercise">
-          <div class="exercise-name">${waistPrev ? (waistChange>0?"+":"") + waistChange.toFixed(1) + " cm" : "—"}</div>
-          <div class="exercise-meta">waist change (last vs prior)</div>
-        </div>
+      <div class="row">
+        <input class="input" id="mCal" placeholder="Calories" inputmode="numeric" value="${m.calories||""}">
+        <input class="input" id="mPro" placeholder="Protein (g)" inputmode="numeric" value="${m.protein||""}">
       </div>
+      <div style="height:10px"></div>
+      <div class="row">
+        <input class="input" id="mCarb" placeholder="Carbs (g)" inputmode="numeric" value="${m.carbs||""}">
+        <input class="input" id="mFat" placeholder="Fat (g)" inputmode="numeric" value="${m.fat||""}">
+      </div>
+
+      <div style="height:10px"></div>
+      <button class="btn primary" id="saveMacros">Save Today</button>
+
+      <div class="hr"></div>
+
+      ${macroProgressHTML(m)}
     </div>
 
     <div class="section-title">Tools</div>
     <div class="card">
       <button class="btn" id="btnTemplateEditor">Edit Templates</button>
       <div style="height:10px"></div>
-      <button class="btn" id="btnSettings">Settings (Rest + Macros)</button>
+      <button class="btn" id="btnSettings">Default Timer Settings</button>
     </div>
   `;
 
   view.querySelectorAll('[data-action="start"]').forEach(btn=>{
     btn.onclick = ()=> startWorkout(btn.dataset.id);
   });
+
   document.getElementById("btnTemplateEditor").onclick = templatesView;
   document.getElementById("btnSettings").onclick = settingsView;
+
+  document.getElementById("saveMacros").onclick = ()=>{
+    const d = todayYMD();
+    const calories = Number(document.getElementById("mCal").value)||0;
+    const protein  = Number(document.getElementById("mPro").value)||0;
+    const carbs    = Number(document.getElementById("mCarb").value)||0;
+    const fat      = Number(document.getElementById("mFat").value)||0;
+
+    const t = loadTracker();
+    const idx = (t.macros||[]).findIndex(x=>x.date===d);
+    const obj = {date:d, calories, protein, carbs, fat};
+    if(idx>=0) t.macros[idx]=obj; else t.macros.push(obj);
+    saveTracker(t);
+    toast("Macros saved ✅");
+    homeView();
+  };
 }
 
-/* TRACKER */
-function upsertByDate(arr, date, obj){
-  const i = arr.findIndex(x=>x.date===date);
-  if(i>=0) arr[i] = {...arr[i], ...obj};
-  else arr.push(obj);
+function macroProgressHTML(m){
+  const pc = (val, target)=> target ? Math.min(1, (val||0)/target) : 0;
+  const calP = pc(m.calories, MACRO_TARGETS.calories);
+  const proP = pc(m.protein,  MACRO_TARGETS.protein);
+  const carbP= pc(m.carbs,    MACRO_TARGETS.carbs);
+  const fatP = pc(m.fat,      MACRO_TARGETS.fat);
+
+  return `
+    <div class="exercise">
+      <div class="exercise-name">Progress</div>
+
+      <div class="exercise-meta">Calories: ${m.calories||0}/${MACRO_TARGETS.calories}</div>
+      <div class="progress"><div style="width:${Math.round(calP*100)}%"></div></div>
+      <div style="height:10px"></div>
+
+      <div class="exercise-meta">Protein: ${m.protein||0}/${MACRO_TARGETS.protein}</div>
+      <div class="progress"><div style="width:${Math.round(proP*100)}%"></div></div>
+      <div style="height:10px"></div>
+
+      <div class="exercise-meta">Carbs: ${m.carbs||0}/${MACRO_TARGETS.carbs}</div>
+      <div class="progress"><div style="width:${Math.round(carbP*100)}%"></div></div>
+      <div style="height:10px"></div>
+
+      <div class="exercise-meta">Fat: ${m.fat||0}/${MACRO_TARGETS.fat}</div>
+      <div class="progress"><div style="width:${Math.round(fatP*100)}%"></div></div>
+    </div>
+  `;
 }
+
+/* Tracker view */
 function trackerView(){
-  SETTINGS = loadSettings();
   setPill("Tracker");
-
   const t = loadTracker();
   const d = todayYMD();
 
-  const weightsSorted = (t.weights||[]).slice().sort((a,b)=> (a.date>b.date?1:-1));
-  const last7 = weightsSorted.slice(-7);
-  const last7Avg = last7.length ? avg(last7.map(x=>Number(x.kg)||0)) : 0;
-  const lastWeight = weightsSorted.slice(-1)[0];
-
-  const waistsSorted = (t.waists||[]).slice().sort((a,b)=> (a.date>b.date?1:-1));
-  const lastWaist = waistsSorted.slice(-1)[0];
-
-  const macrosSorted = (t.macros||[]).slice().sort((a,b)=> (a.date>b.date?1:-1));
-  const todayMacros = macrosSorted.find(m=>m.date===d) || null;
-
-  const tgt = SETTINGS.macroTargets || DEFAULT_MACRO_TARGETS;
-
-  const pHit = todayMacros ? Math.round((Number(todayMacros.p||0)/Math.max(1,tgt.p))*100) : 0;
-  const proteinWarn = todayMacros ? (Number(todayMacros.p||0) < Math.max(0, tgt.p-20)) : false;
+  const wt = weightTrends();
+  const lastWaist = (t.waists||[]).slice().sort((a,b)=>a.date.localeCompare(b.date)).slice(-1)[0];
+  const m = macroToday();
 
   view.innerHTML = `
-    <h2>Cut Tracker</h2>
-
     <div class="card">
-      <div class="section-title">Daily Weight</div>
-      <input class="input" id="wtKg" inputmode="decimal" placeholder="Weight (kg)" value="${lastWeight ? escapeAttr(lastWeight.kg) : ""}">
-      <button class="btn primary" id="saveWeight">Save Weight</button>
-      <div class="sub">Last 7 day avg: <b>${last7Avg ? last7Avg.toFixed(1) : "—"}</b></div>
-    </div>
-
-    <div class="card">
-      <div class="section-title">Weekly Waist</div>
-      <input class="input" id="waistCm" inputmode="decimal" placeholder="Waist (cm)" value="${lastWaist ? escapeAttr(lastWaist.cm) : ""}">
-      <button class="btn primary" id="saveWaist">Save Waist</button>
-      <div class="sub">Last saved: <b>${lastWaist ? lastWaist.cm + " cm ("+lastWaist.date+")" : "—"}</b></div>
-    </div>
-
-    <div class="card">
-      <div class="section-title">Daily Macros</div>
-      <div class="exercise-meta">Targets: ${tgt.kcal} kcal • P ${tgt.p} • C ${tgt.c} • F ${tgt.f}</div>
+      <h2>Cut Tracker</h2>
+      <div class="exercise-meta">Log weight daily • waist weekly • macros daily</div>
       <div class="hr"></div>
 
-      <div class="set" style="grid-template-columns:1fr 1fr; grid-auto-rows:auto;">
-        <input class="input" id="mKcal" inputmode="numeric" placeholder="Calories" value="${todayMacros ? escapeAttr(todayMacros.kcal) : ""}">
-        <input class="input" id="mP" inputmode="numeric" placeholder="Protein (g)" value="${todayMacros ? escapeAttr(todayMacros.p) : ""}">
-        <input class="input" id="mC" inputmode="numeric" placeholder="Carbs (g)" value="${todayMacros ? escapeAttr(todayMacros.c) : ""}">
-        <input class="input" id="mF" inputmode="numeric" placeholder="Fat (g)" value="${todayMacros ? escapeAttr(todayMacros.f) : ""}">
-      </div>
+      <div class="section-title" style="margin-top:0;">Daily Weight</div>
+      <input class="input" id="wtKg" placeholder="Weight (kg)" inputmode="decimal">
+      <button class="btn primary" id="saveWeight">Save Weight</button>
+      <div class="sub">7-day avg: <b>${wt.avg7 ? wt.avg7.toFixed(1) : "—"}</b></div>
 
+      <div class="hr"></div>
+
+      <div class="section-title" style="margin-top:0;">Weekly Waist</div>
+      <input class="input" id="waistCm" placeholder="Waist (cm)" inputmode="decimal">
+      <button class="btn primary" id="saveWaist">Save Waist</button>
+      <div class="sub">Last saved: <b>${lastWaist ? lastWaist.cm + " cm" : "—"}</b></div>
+
+      <div class="hr"></div>
+
+      <div class="section-title" style="margin-top:0;">Today’s Macros</div>
+      <div class="row">
+        <input class="input" id="mCal" placeholder="Calories" inputmode="numeric" value="${m.calories||""}">
+        <input class="input" id="mPro" placeholder="Protein (g)" inputmode="numeric" value="${m.protein||""}">
+      </div>
+      <div style="height:10px"></div>
+      <div class="row">
+        <input class="input" id="mCarb" placeholder="Carbs (g)" inputmode="numeric" value="${m.carbs||""}">
+        <input class="input" id="mFat" placeholder="Fat (g)" inputmode="numeric" value="${m.fat||""}">
+      </div>
       <div style="height:10px"></div>
       <button class="btn primary" id="saveMacros">Save Macros</button>
 
       <div class="hr"></div>
-      <div class="exercise-meta">
-        Protein hit: <b>${todayMacros ? pHit + "%" : "—"}</b>
-        ${proteinWarn ? ` • <span style="color:var(--danger);font-weight:900">LOW</span>` : ""}
-      </div>
+      ${macroProgressHTML(m)}
     </div>
   `;
 
   document.getElementById("saveWeight").onclick = ()=>{
-    const kg = clampNum(document.getElementById("wtKg").value);
+    const kg = Number(document.getElementById("wtKg").value);
     if(!kg){ alert("Enter weight"); return; }
     const tt = loadTracker();
-    tt.weights = tt.weights || [];
-    upsertByDate(tt.weights, d, {date:d, kg:kg});
+    tt.weights.push({date:d, kg});
     saveTracker(tt);
     toast("Weight saved ✅");
     trackerView();
   };
 
   document.getElementById("saveWaist").onclick = ()=>{
-    const cm = clampNum(document.getElementById("waistCm").value);
+    const cm = Number(document.getElementById("waistCm").value);
     if(!cm){ alert("Enter waist"); return; }
     const tt = loadTracker();
-    tt.waists = tt.waists || [];
-    upsertByDate(tt.waists, d, {date:d, cm:cm});
+    tt.waists.push({date:d, cm});
     saveTracker(tt);
     toast("Waist saved ✅");
     trackerView();
   };
 
   document.getElementById("saveMacros").onclick = ()=>{
-    const kcal = clampNum(document.getElementById("mKcal").value);
-    const p = clampNum(document.getElementById("mP").value);
-    const c = clampNum(document.getElementById("mC").value);
-    const f = clampNum(document.getElementById("mF").value);
-    if(!kcal && !p && !c && !f){ alert("Enter at least one macro"); return; }
+    const calories = Number(document.getElementById("mCal").value)||0;
+    const protein  = Number(document.getElementById("mPro").value)||0;
+    const carbs    = Number(document.getElementById("mCarb").value)||0;
+    const fat      = Number(document.getElementById("mFat").value)||0;
+
     const tt = loadTracker();
-    tt.macros = tt.macros || [];
-    upsertByDate(tt.macros, d, {date:d, kcal, p, c, f});
+    const idx = (tt.macros||[]).findIndex(x=>x.date===d);
+    const obj = {date:d, calories, protein, carbs, fat};
+    if(idx>=0) tt.macros[idx]=obj; else tt.macros.push(obj);
     saveTracker(tt);
     toast("Macros saved ✅");
     trackerView();
   };
 }
 
-/* WORKOUT */
+/* Workout */
 function startWorkout(templateId){
   TEMPLATES = loadTemplates();
   const tpl = TEMPLATES.find(t=>t.id===templateId);
@@ -524,7 +564,7 @@ function startWorkout(templateId){
       name: ex.name,
       targetSets: Number(ex.sets)||0,
       targetReps: ex.reps || "",
-      rest: Number(ex.rest)||0,
+      rest: Number(ex.rest)||Number(loadSettings().defaultRestSeconds)||90,
       video: ex.video || "",
       note: "",
       sets: []
@@ -534,6 +574,7 @@ function startWorkout(templateId){
   workoutView();
   toast(`${tpl.name} started`);
 }
+
 function saveDraft(){ sessionStorage.setItem("steadylog.draft", JSON.stringify(activeWorkout)); }
 
 function addSet(exIndex){
@@ -542,6 +583,7 @@ function addSet(exIndex){
   saveDraft();
   workoutView();
 }
+
 function updateSet(exIndex, setIndex, field, value){
   const s = activeWorkout.exercises[exIndex].sets[setIndex];
   s[field] = (value === "" ? "" : Number(value));
@@ -556,9 +598,7 @@ function toggleDone(exIndex,setIndex){
   saveDraft();
   workoutView();
   if(s.done){
-    SETTINGS=loadSettings();
-    const ex = activeWorkout.exercises[exIndex];
-    const rest = Number(ex.rest) || Number(SETTINGS.restSeconds) || 90;
+    const rest = Number(activeWorkout.exercises[exIndex].rest)||90;
     startTimer(rest);
   }
 }
@@ -569,13 +609,11 @@ function deleteSet(exIndex,setIndex){
 }
 
 function workoutView(){
-  SETTINGS=loadSettings();
   setPill("In session");
-
   view.innerHTML = `
     <div class="card">
       <h2>${activeWorkout.name}<span class="tag">${activeWorkout.subtitle||""}</span></h2>
-      <div class="exercise-meta">Started: ${fmtDate(activeWorkout.startedAt)} • Default Rest: ${SETTINGS.restSeconds}s</div>
+      <div class="exercise-meta">Started: ${fmtDate(activeWorkout.startedAt)}</div>
       <div class="hr"></div>
 
       <div class="section-title" style="margin-top:0;">Session Notes</div>
@@ -587,17 +625,16 @@ function workoutView(){
         ${activeWorkout.exercises.map((ex,idx)=>{
           const last = getLastSetsForExercise(ex.id);
           const lastStr = last.length ? last.slice(0,3).map(s=>`${s.kg}kg×${s.reps}`).join(", ") : "—";
-          const restStr = (Number(ex.rest)||Number(SETTINGS.restSeconds)||90) + "s";
           return `
             <div class="exercise">
               <div class="exercise-head">
-                <div>
+                <div style="flex:1">
                   <div class="exercise-name">${ex.name}</div>
-                  <div class="exercise-meta">🎯 ${ex.targetSets} sets • ${ex.targetReps} • Rest: ${restStr} • Last: ${lastStr}</div>
+                  <div class="exercise-meta">🎯 ${ex.targetSets} sets • ${ex.targetReps} • Rest: ${ex.rest}s • Last: ${lastStr}</div>
                 </div>
-                <div class="row-actions">
-                  ${ex.video ? `<button class="btn" data-video="${idx}">▶ Video</button>` : ``}
-                  <button class="btn" data-add="${idx}">+ Set</button>
+                <div style="display:flex; gap:8px;">
+                  ${ex.video ? `<a class="btn" style="width:auto;padding:10px 12px; text-decoration:none; display:inline-flex; align-items:center; justify-content:center;" href="${escapeAttr(ex.video)}" target="_blank" rel="noopener">▶ Video</a>` : ""}
+                  <button class="btn" style="width:auto;padding:10px 12px" data-add="${idx}">+ Set</button>
                 </div>
               </div>
 
@@ -622,11 +659,6 @@ function workoutView(){
 
   document.getElementById("sessionNotes").oninput = (e)=> updateSessionNotes(e.target.value);
   view.querySelectorAll("[data-add]").forEach(b=> b.onclick = ()=> addSet(Number(b.dataset.add)));
-  view.querySelectorAll("[data-video]").forEach(b=> b.onclick = ()=>{
-    const i = Number(b.dataset.video);
-    const url = activeWorkout.exercises[i].video;
-    if(url) openLink(url);
-  });
   view.querySelectorAll("[data-exnote]").forEach(inp=> inp.oninput = (e)=> updateExerciseNote(Number(inp.dataset.exnote), e.target.value));
   view.querySelectorAll("[data-kg]").forEach(inp=> inp.oninput = (e)=>{
     const [i,j]=inp.dataset.kg.split(":").map(Number); updateSet(i,j,"kg", e.target.value);
@@ -643,7 +675,7 @@ function workoutView(){
 
   setFooterActions([
     {label:"Finish & Save", cls:"primary", onClick: finishWorkout},
-    {label:`Rest`, cls:"ghost", onClick: ()=> startTimer(Number(SETTINGS.restSeconds)||90)},
+    {label:"Rest", cls:"ghost", onClick: ()=> startTimer(Number(loadSettings().defaultRestSeconds)||90)},
     {label:"Cancel", cls:"danger", onClick: cancelWorkout},
   ]);
 }
@@ -659,7 +691,7 @@ function finishWorkout(){
   sessionStorage.removeItem("steadylog.draft");
   activeWorkout=null;
   toast("Saved ✅");
-  setFooterNav();
+  resetFooterNav();
   homeView();
 }
 function cancelWorkout(){
@@ -668,12 +700,12 @@ function cancelWorkout(){
     activeWorkout=null;
     sessionStorage.removeItem("steadylog.draft");
     toast("Cancelled");
-    setFooterNav();
+    resetFooterNav();
     homeView();
   }
 }
 
-/* HISTORY */
+/* History */
 function historyView(){
   setPill("History");
   const sessions = loadSessions();
@@ -690,6 +722,7 @@ function historyView(){
   `;
   view.querySelectorAll("[data-open]").forEach(b=> b.onclick = ()=> sessionDetailView(b.dataset.open));
 }
+
 function sessionDetailView(id){
   const sessions=loadSessions();
   const s=sessions.find(x=>x.id===id);
@@ -705,7 +738,7 @@ function sessionDetailView(id){
         ${s.exercises.map(ex=>`
           <div class="exercise">
             <div class="exercise-name">${ex.name}</div>
-            <div class="exercise-meta">🎯 ${ex.targetSets} • ${ex.targetReps} • Rest: ${(ex.rest||0)}s</div>
+            <div class="exercise-meta">🎯 ${ex.targetSets} • ${ex.targetReps} • Rest: ${ex.rest || "—"}s</div>
             ${ex.note?`<div class="exercise-meta"><b>Note:</b> ${escapeHtml(ex.note)}</div>`:""}
             <div class="hr"></div>
             <div class="exercise-meta">${(ex.sets||[]).map(st=>`${st.kg}kg×${st.reps}`).join(" • ") || "—"}</div>
@@ -726,7 +759,23 @@ function sessionDetailView(id){
   };
 }
 
-/* EXERCISES */
+/* Exercises / PRs */
+function computeStats(){
+  const sessions = loadSessions();
+  const best = {};
+  for(const ses of sessions){
+    for(const ex of ses.exercises){
+      for(const st of (ex.sets||[])){
+        const kg = Number(st.kg)||0, reps = Number(st.reps)||0;
+        if(!best[ex.id] || kg>best[ex.id].kg || (kg===best[ex.id].kg && reps>best[ex.id].reps)){
+          best[ex.id] = {kg,reps,at:ses.startedAt, name: ex.name};
+        }
+      }
+    }
+  }
+  return {best};
+}
+
 function exercisesView(){
   setPill("Exercises");
   const stats = computeStats();
@@ -753,6 +802,7 @@ function exercisesView(){
   view.querySelectorAll("[data-ex]").forEach(b=> b.onclick = ()=> exerciseDetailView(b.dataset.ex));
   document.getElementById("editTplFromEx").onclick = templatesView;
 }
+
 function exerciseDetailView(exId){
   const sessions=loadSessions();
   const entries=[];
@@ -791,54 +841,41 @@ function exerciseDetailView(exId){
   document.getElementById("backEx").onclick = exercisesView;
 }
 
-/* EXPORT */
-function trackerToCSV(tracker){
-  const rows = [];
-  rows.push("type,date,value,kcal,protein,carbs,fat");
-  (tracker.weights||[]).forEach(w=> rows.push(`weight,${w.date},${w.kg},,,,`));
-  (tracker.waists||[]).forEach(w=> rows.push(`waist,${w.date},${w.cm},,,,`));
-  (tracker.macros||[]).forEach(m=> rows.push(`macros,${m.date},,${m.kcal||""},${m.p||""},${m.c||""},${m.f||""}`));
-  return rows.join("\n");
-}
-function downloadText(filename, text, mime){
-  const blob = new Blob([text], {type:mime || "text/plain;charset=utf-8"});
+/* Export */
+function downloadText(filename, text, mime="text/plain"){
+  const blob = new Blob([text], {type:mime});
   const url = URL.createObjectURL(blob);
   const a=document.createElement("a");
   a.href=url; a.download=filename;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
-function downloadCSV(sessions){
-  const rows=[["date","workout","exercise","set_index","kg","reps","session_notes","exercise_note","rest_seconds"]];
-  for(const ses of sessions){
-    for(const ex of ses.exercises){
-      (ex.sets||[]).forEach((st,idx)=>{
-        rows.push([ses.startedAt,ses.name,ex.name,String(idx+1),String(st.kg),String(st.reps),ses.notes||"",ex.note||"",String(ex.rest||"")]);
-      });
-    }
-  }
-  const csv = rows.map(r=> r.map(v=> `"${String(v).replaceAll('"','""')}"`).join(",")).join("\n");
-  downloadText(`steady-log-${new Date().toISOString().slice(0,10)}.csv`, csv, "text/csv");
-  toast("Workout CSV downloaded ✅");
-}
+
 function exportView(){
   setPill("Export");
   view.innerHTML = `
     <div class="card">
       <h2>Export</h2>
-      <div class="exercise-meta">Download CSV backups.</div>
+      <div class="exercise-meta">Download backups (Workouts + Tracker).</div>
       <div class="hr"></div>
-      <button class="btn primary" id="btnCsv">Download Workout CSV</button>
+
+      <button class="btn primary" id="btnCsv">Download Workouts CSV</button>
       <button class="btn" id="btnExportTracker">Download Tracker CSV</button>
+
       <div style="height:10px"></div>
+
       <button class="btn danger" id="btnWipe">Wipe all data</button>
     </div>`;
+
   document.getElementById("btnCsv").onclick = ()=> downloadCSV(loadSessions());
+
   document.getElementById("btnExportTracker").onclick = ()=>{
     const t = loadTracker();
-    downloadText(`steady-tracker-${new Date().toISOString().slice(0,10)}.csv`, trackerToCSV(t), "text/csv");
+    const csv = trackerToCSV(t);
+    downloadText(`steady-tracker-${todayYMD()}.csv`, csv, "text/csv");
     toast("Tracker CSV downloaded ✅");
   };
+
   document.getElementById("btnWipe").onclick = ()=>{
     if(confirm("Wipe ALL Steady Log data from this phone?")){
       localStorage.removeItem(STORAGE_KEY);
@@ -850,68 +887,52 @@ function exportView(){
   };
 }
 
-/* SETTINGS */
+function downloadCSV(sessions){
+  const rows=[["date","workout","exercise","set_index","kg","reps","rest_seconds","session_notes","exercise_note"]];
+  for(const ses of sessions){
+    for(const ex of ses.exercises){
+      (ex.sets||[]).forEach((st,idx)=>{
+        rows.push([ses.startedAt,ses.name,ex.name,String(idx+1),String(st.kg),String(st.reps),String(ex.rest||""),ses.notes||"",ex.note||""]);
+      });
+    }
+  }
+  const csv = rows.map(r=> r.map(v=> `"${String(v).replaceAll('"','""')}"`).join(",")).join("\n");
+  downloadText(`steady-log-${todayYMD()}.csv`, csv, "text/csv");
+  toast("Workouts CSV downloaded ✅");
+}
+
+/* Settings */
 function settingsView(){
   SETTINGS=loadSettings();
   setPill("Settings");
-  const tgt = SETTINGS.macroTargets || DEFAULT_MACRO_TARGETS;
-
   view.innerHTML = `
     <div class="card">
-      <h2>Settings</h2>
-      <div class="exercise-meta">Default rest applies when an exercise has no rest set.</div>
+      <h2>Default Timer Settings</h2>
+      <div class="exercise-meta">Used when you tap “Rest” and as a fallback.</div>
       <div class="hr"></div>
-
-      <div class="section-title" style="margin-top:0">Default Rest</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        ${[60,90,120].map(s=>`<button class="btn ${SETTINGS.restSeconds===s?"primary":"ghost"}" style="width:auto" data-s="${s}">${s}s</button>`).join("")}
+        ${[60,75,90,120].map(s=>`<button class="btn ${SETTINGS.defaultRestSeconds===s?"primary":"ghost"}" style="width:auto" data-s="${s}">${s}s</button>`).join("")}
       </div>
-
-      <div class="hr"></div>
-
-      <div class="section-title" style="margin-top:0">Macro Targets</div>
-      <div class="set" style="grid-template-columns:1fr 1fr; grid-auto-rows:auto;">
-        <input class="input" id="tKcal" inputmode="numeric" placeholder="Calories" value="${escapeAttr(tgt.kcal)}">
-        <input class="input" id="tP" inputmode="numeric" placeholder="Protein" value="${escapeAttr(tgt.p)}">
-        <input class="input" id="tC" inputmode="numeric" placeholder="Carbs" value="${escapeAttr(tgt.c)}">
-        <input class="input" id="tF" inputmode="numeric" placeholder="Fat" value="${escapeAttr(tgt.f)}">
-      </div>
-      <div style="height:10px"></div>
-      <button class="btn primary" id="saveTargets">Save Targets</button>
-
       <div class="hr"></div>
       <button class="btn" id="backHome">Back</button>
     </div>`;
-
   view.querySelectorAll("[data-s]").forEach(b=> b.onclick = ()=>{
-    SETTINGS.restSeconds = Number(b.dataset.s);
+    SETTINGS.defaultRestSeconds = Number(b.dataset.s);
     saveSettings(SETTINGS);
-    toast(`Default rest set to ${SETTINGS.restSeconds}s`);
+    toast(`Default rest set to ${SETTINGS.defaultRestSeconds}s`);
     settingsView();
   });
-
-  document.getElementById("saveTargets").onclick = ()=>{
-    SETTINGS.macroTargets = {
-      kcal: clampNum(document.getElementById("tKcal").value) || DEFAULT_MACRO_TARGETS.kcal,
-      p: clampNum(document.getElementById("tP").value) || DEFAULT_MACRO_TARGETS.p,
-      c: clampNum(document.getElementById("tC").value) || DEFAULT_MACRO_TARGETS.c,
-      f: clampNum(document.getElementById("tF").value) || DEFAULT_MACRO_TARGETS.f,
-    };
-    saveSettings(SETTINGS);
-    toast("Targets saved ✅");
-    settingsView();
-  };
-
   document.getElementById("backHome").onclick = homeView;
 }
 
-/* TEMPLATE EDITOR */
+/* Template editor */
 function templatesView(){
   TEMPLATES = loadTemplates();
   setPill("Templates");
   view.innerHTML = `
     <div class="card">
       <h2>Edit Templates</h2>
+      <div class="exercise-meta">You can change order / sets / reps / rest / video.</div>
       <div class="hr"></div>
       <div class="list">
         ${TEMPLATES.map(t=>`<button class="btn" data-tpl="${t.id}">${t.name}<span class="tag">${t.subtitle||""}</span></button>`).join("")}
@@ -926,7 +947,7 @@ function templatesView(){
   document.getElementById("resetTpl").onclick = ()=>{
     if(confirm("Reset templates to default?")){
       saveTemplates(DEFAULT_TEMPLATES);
-      toast("Templates reset ✅");
+      toast("Templates reset");
       templatesView();
     }
   };
@@ -937,27 +958,25 @@ function templateEditView(tplId){
   const idx = TEMPLATES.findIndex(t=>t.id===tplId);
   if(idx<0){ templatesView(); return; }
   const tpl = TEMPLATES[idx];
-
   setPill("Edit");
+
   view.innerHTML = `
     <div class="card">
       <h2>${tpl.name}<span class="tag">${tpl.subtitle||""}</span></h2>
-      <div class="exercise-meta">Edit: name • sets • reps • rest • video link</div>
       <div class="hr"></div>
-
       <div class="list">
         ${(tpl.exercises||[]).map((ex,i)=>`
           <div class="exercise">
             <div class="exercise-head">
               <div style="flex:1">
                 <input class="input" style="width:100%;font-weight:900" value="${escapeAttr(ex.name)}" data-edit="name" data-i="${i}">
-                <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;">
+                <div style="display:flex;gap:10px;margin-top:8px; flex-wrap:wrap;">
                   <input class="input" inputmode="numeric" style="max-width:110px" value="${ex.sets}" data-edit="sets" data-i="${i}" placeholder="Sets">
-                  <input class="input" style="flex:1" value="${escapeAttr(ex.reps)}" data-edit="reps" data-i="${i}" placeholder="Reps">
-                  <input class="input" inputmode="numeric" style="max-width:120px" value="${escapeAttr(ex.rest||"")}" data-edit="rest" data-i="${i}" placeholder="Rest (s)">
+                  <input class="input" style="flex:1" value="${escapeAttr(ex.reps)}" data-edit="reps" data-i="${i}" placeholder="Reps (e.g. 8–10)">
+                  <input class="input" inputmode="numeric" style="max-width:120px" value="${ex.rest||90}" data-edit="rest" data-i="${i}" placeholder="Rest (s)">
                 </div>
-                <div style="margin-top:8px;">
-                  <input class="input" value="${escapeAttr(ex.video||"")}" data-edit="video" data-i="${i}" placeholder="Video link (YouTube URL)">
+                <div style="margin-top:8px">
+                  <input class="input" value="${escapeAttr(ex.video||"")}" data-edit="video" data-i="${i}" placeholder="Video link (YouTube URL or search URL)">
                 </div>
               </div>
               <div style="display:flex;flex-direction:column;gap:8px;">
@@ -968,9 +987,8 @@ function templateEditView(tplId){
             </div>
           </div>`).join("")}
       </div>
-
       <div class="hr"></div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <div style="display:flex;gap:10px">
         <button class="btn primary" id="addEx">+ Add Exercise</button>
         <button class="btn" id="saveTplBtn">Save</button>
       </div>
@@ -982,8 +1000,7 @@ function templateEditView(tplId){
     inp.oninput = ()=>{
       const i=Number(inp.dataset.i);
       const field=inp.dataset.edit;
-      if(field==="sets") tpl.exercises[i][field] = Number(inp.value)||0;
-      else if(field==="rest") tpl.exercises[i][field] = Number(inp.value)||0;
+      if(field==="sets" || field==="rest") tpl.exercises[i][field] = Number(inp.value)||0;
       else tpl.exercises[i][field] = inp.value;
     };
   });
@@ -1011,7 +1028,14 @@ function templateEditView(tplId){
   });
 
   document.getElementById("addEx").onclick = ()=>{
-    tpl.exercises.push({id:crypto.randomUUID(), name:"New Exercise", sets:3, reps:"10–12", rest:90, video:""});
+    tpl.exercises.push({
+      id:crypto.randomUUID(),
+      name:"New Exercise",
+      sets:3,
+      reps:"10–12",
+      rest:90,
+      video:qVid("exercise tutorial")
+    });
     TEMPLATES[idx]=tpl; saveTemplates(TEMPLATES);
     templateEditView(tplId);
   };
@@ -1020,26 +1044,27 @@ function templateEditView(tplId){
     TEMPLATES[idx]=tpl; saveTemplates(TEMPLATES);
     toast("Template saved ✅");
   };
+
   document.getElementById("backTpls").onclick = templatesView;
 }
 
-/* BOOT */
+/* Boot */
 function boot(){
   if("serviceWorker" in navigator){
-    navigator.serviceWorker.register("./sw.js").catch(()=>{});
+    navigator.serviceWorker.register("./sw.js?v="+VERSION).catch(()=>{});
   }
   const draft = sessionStorage.getItem("steadylog.draft");
   if(draft){
     try{
       activeWorkout = JSON.parse(draft);
-      setFooterNav();
       workoutView();
+      resetFooterNav();
       return;
     }catch(e){
       sessionStorage.removeItem("steadylog.draft");
     }
   }
-  setFooterNav();
+  resetFooterNav();
   homeView();
 }
 boot();
