@@ -1,16 +1,23 @@
-/* Steady Log (V1.4) - iPhone PWA - weights-only (Dark Mode)
-   Upgrades:
-   - Per-exercise rest timers (auto-starts on ✓)
-   - Exercise video links (editable)
-   - Cut Tracker: daily weight + daily macros + weekly waist
+/* Steady Log (V1.5) - iPhone PWA - weights-only (Dark Mode)
+   Features:
+   - Rest timer overlay + vibrate + auto-start on ✓
+   - Per-exercise rest seconds (arms 60s, compounds 120s, etc.)
+   - Suggested KG = last working set from last session for that exercise
+   - Notes: per session + per exercise
+   - PRs + recent progress
+   - Editable templates (name/sets/reps/rest/video + reorder)
+   - Tracker: daily weight + daily macros + weekly waist
    - Streaks + trends
-   - Export Tracker CSV (weights/waist/macros)
+   - Cut Coach prompts (based on your trend + logging)
+   - Export workout CSV + tracker CSV
 */
+
 const STORAGE_KEY   = "steadylog.sessions.v2";
 const SETTINGS_KEY  = "steadylog.settings.v2";
 const TEMPLATES_KEY = "steadylog.templates.v2";
-const TRACKER_KEY   = "steadylog.tracker.v2"; // bumped for macros
+const TRACKER_KEY   = "steadylog.tracker.v2";
 
+/* ---------- DEFAULT TEMPLATES ---------- */
 const DEFAULT_TEMPLATES = [
   {
     id: "upperA",
@@ -64,6 +71,7 @@ const DEFAULT_TEMPLATES = [
   }
 ];
 
+/* ---------- Helpers ---------- */
 function nowISO(){ return new Date().toISOString(); }
 function todayYMD(){ return new Date().toISOString().slice(0,10); }
 function fmtDate(iso){
@@ -84,7 +92,9 @@ function loadJSON(key, fallback){
   catch(e){ return fallback; }
 }
 function saveJSON(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+function avg(arr){ if(!arr.length) return 0; return arr.reduce((a,b)=>a+b,0)/arr.length; }
 
+/* ---------- Storage ---------- */
 function loadSessions(){ return loadJSON(STORAGE_KEY, []); }
 function saveSessions(sessions){ saveJSON(STORAGE_KEY, sessions); }
 
@@ -99,14 +109,10 @@ function loadTemplates(){
 function saveTemplates(tpls){ saveJSON(TEMPLATES_KEY, tpls); }
 
 function loadTracker(){
+  // {weights:[{date,kg}], waists:[{date,cm}], macros:[{date,cal,p,c,f}]}
   return loadJSON(TRACKER_KEY, { weights: [], waists: [], macros: [] });
 }
 function saveTracker(t){ saveJSON(TRACKER_KEY, t); }
-
-function avg(arr){
-  if(!arr.length) return 0;
-  return arr.reduce((a,b)=>a+b,0)/arr.length;
-}
 
 let SETTINGS = loadSettings();
 let TEMPLATES = loadTemplates();
@@ -129,6 +135,7 @@ function escapeAttr(str){
     .replaceAll('"',"&quot;");
 }
 
+/* ---------- Weight suggestions + PR stats ---------- */
 function getLastSetsForExercise(exId){
   const sessions = loadSessions();
   for(let i=sessions.length-1;i>=0;i--){
@@ -147,7 +154,6 @@ function getSuggestedKg(exId){
   const last = lastSets[lastSets.length - 1];
   return (Number(last.kg) || "");
 }
-
 function computeStats(){
   const sessions = loadSessions();
   const total = sessions.length;
@@ -166,12 +172,18 @@ function computeStats(){
   return {total,last,best};
 }
 
-/* Streak helpers */
+/* ---------- Streaks + trend ---------- */
 function dayKey(d){ return new Date(d).toISOString().slice(0,10); }
+
 function computeWorkoutStreak(){
   const sessions = loadSessions();
   if(!sessions.length) return 0;
   const days = Array.from(new Set(sessions.map(s=>dayKey(s.startedAt)))).sort();
+  const lastDay = days[days.length-1];
+  const today = todayYMD();
+  const gap = Math.round((new Date(today)-new Date(lastDay))/(1000*60*60*24));
+  if(gap>1) return 0;
+
   let streak=1;
   for(let i=days.length-1;i>0;i--){
     const a=new Date(days[i]);
@@ -180,17 +192,18 @@ function computeWorkoutStreak(){
     if(diff===1) streak++;
     else break;
   }
-  // If last logged day isn't today or yesterday, streak is 0
-  const lastDay = new Date(days[days.length-1]);
-  const today = new Date(todayYMD());
-  const gap = Math.round((today-lastDay)/(1000*60*60*24));
-  if(gap>1) return 0;
   return streak;
 }
+
 function computeWeighInStreak(){
   const t=loadTracker();
   const days=(t.weights||[]).map(w=>w.date).sort();
   if(!days.length) return 0;
+  const lastDay = days[days.length-1];
+  const today = todayYMD();
+  const gap = Math.round((new Date(today)-new Date(lastDay))/(1000*60*60*24));
+  if(gap>1) return 0;
+
   let streak=1;
   for(let i=days.length-1;i>0;i--){
     const a=new Date(days[i]);
@@ -199,25 +212,71 @@ function computeWeighInStreak(){
     if(diff===1) streak++;
     else break;
   }
-  const lastDay = new Date(days[days.length-1]);
-  const today = new Date(todayYMD());
-  const gap = Math.round((today-lastDay)/(1000*60*60*24));
-  if(gap>1) return 0;
   return streak;
 }
 
 function weightTrend(){
   const t=loadTracker();
   const ws=(t.weights||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
-  if(ws.length < 7) return { last7:0, prev7:0, delta:0 };
+  if(ws.length < 7) return { last7:0, prev7:0, delta:0, has14:false };
   const last7 = ws.slice(-7).map(x=>Number(x.kg)||0);
   const prev7 = ws.slice(-14,-7).map(x=>Number(x.kg)||0);
   const a = avg(last7);
   const b = prev7.length ? avg(prev7) : 0;
-  return { last7:a, prev7:b, delta: a-b };
+  return { last7:a, prev7:b, delta: a-b, has14: ws.length>=14 };
 }
 
-/* Rest Timer overlay */
+/* ---------- Cut Coach ---------- */
+function daysSince(dateYMD){
+  if(!dateYMD) return 9999;
+  const a = new Date(dateYMD+"T00:00:00Z");
+  const b = new Date(todayYMD()+"T00:00:00Z");
+  return Math.round((b-a)/(1000*60*60*24));
+}
+
+function getCutCoachTips(){
+  const tips = [];
+
+  const t = loadTracker();
+  const weights = (t.weights||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const macros  = (t.macros||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const waists  = (t.waists||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
+
+  const today = todayYMD();
+  const weighedToday = weights.some(w=>w.date===today);
+  const macrosToday  = macros.some(m=>m.date===today);
+
+  if(!weighedToday) tips.push("📌 Weigh in today (AM, after toilet, before food).");
+  if(!macrosToday)  tips.push("📌 Log calories/macros today (even rough is better than nothing).");
+
+  const lastWaist = waists.length ? waists[waists.length-1].date : null;
+  if(daysSince(lastWaist) >= 7) tips.push("📏 Waist due (once per week).");
+
+  if(weights.length >= 14){
+    const last7 = weights.slice(-7).map(x=>Number(x.kg)||0);
+    const prev7 = weights.slice(-14,-7).map(x=>Number(x.kg)||0);
+    const last7Avg = avg(last7);
+    const prev7Avg = avg(prev7);
+    const deltaAvg = last7Avg - prev7Avg; // negative = dropping
+    const weeklyLoss = -deltaAvg;
+
+    if(weeklyLoss < 0.15){
+      tips.push("🧠 Trend is stalling. Pick ONE: -150 kcal/day OR +2–3k steps/day for 7 days.");
+      tips.push("✅ Check: weekend calories, sauces/oils, liquid calories, portion creep.");
+    } else if(weeklyLoss > 1.5){
+      tips.push("⚠️ Dropping very fast. Consider +100–200 kcal/day or keep a planned refeed day.");
+      tips.push("✅ Aim: keep strength up + recover (especially with high steps).");
+    } else {
+      tips.push("🔥 Trend looks on track. Keep steady — hit steps + protein + progressive overload.");
+    }
+  } else {
+    tips.push("📈 Get 14 weigh-ins logged and I’ll coach your trend properly.");
+  }
+
+  return tips.slice(0,6);
+}
+
+/* ---------- Rest Timer overlay ---------- */
 let timerInterval=null, timerEndsAt=null;
 function stopTimer(){
   if(timerInterval) clearInterval(timerInterval);
@@ -282,7 +341,7 @@ function startTimer(seconds){
   timerInterval=setInterval(tick, 250);
 }
 
-/* Views */
+/* ---------- Views ---------- */
 const view = document.getElementById("view");
 let activeWorkout=null;
 
@@ -301,6 +360,7 @@ function resetFooterNav(){
   document.getElementById("navTracker").onclick = ()=>{ stopTimer(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); trackerView(); resetFooterNav(); };
   document.getElementById("navExport").onclick = ()=>{ stopTimer(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); exportView(); resetFooterNav(); };
 }
+
 function setFooterActions(actions){
   const wrap = document.querySelector(".footerbar .wrap");
   wrap.innerHTML = actions.map((a,i)=>`<button class="btn ${a.cls||"ghost"}" data-foot="${i}">${a.label}</button>`).join("");
@@ -309,17 +369,19 @@ function setFooterActions(actions){
   });
 }
 
+/* ---------- Home ---------- */
 function homeView(){
   SETTINGS = loadSettings();
   TEMPLATES = loadTemplates();
   setPill("Ready");
+
   const stats = computeStats();
   const lastText = stats.last ? fmtDate(stats.last) : "—";
 
   const ws = computeWorkoutStreak();
   const wts = computeWeighInStreak();
   const tr = weightTrend();
-  const trendText = tr.last7 ? `${tr.last7.toFixed(1)} kg (7d avg) • ${tr.delta<=0 ? "" : "+"}${tr.delta.toFixed(1)} vs prev` : "—";
+  const trendText = tr.last7 ? `${tr.last7.toFixed(1)} kg (7d avg) • ${(tr.delta>0?"+":"")}${tr.delta.toFixed(1)} vs prev` : "—";
 
   view.innerHTML = `
     <div class="card">
@@ -327,7 +389,9 @@ function homeView(){
       <div class="hr"></div>
       <div class="grid">
         ${TEMPLATES.map(t=>`
-          <button class="btn primary" data-action="start" data-id="${t.id}">${t.name}<span class="tag">${t.subtitle||""}</span></button>
+          <button class="btn primary" data-action="start" data-id="${t.id}">
+            ${t.name}<span class="tag">${t.subtitle||""}</span>
+          </button>
         `).join("")}
       </div>
 
@@ -339,6 +403,15 @@ function homeView(){
         <div class="exercise"><div class="exercise-name">${wts} ✅</div><div class="exercise-meta">weigh-in streak</div></div>
         <div class="exercise"><div class="exercise-name">${trendText}</div><div class="exercise-meta">weight trend</div></div>
         <div class="exercise"><div class="exercise-name">${SETTINGS.restSeconds}s</div><div class="exercise-meta">default rest timer</div></div>
+      </div>
+    </div>
+
+    <div class="section-title">Cut Coach</div>
+    <div class="card">
+      <div class="exercise-meta">Based on your weigh-ins + logs.</div>
+      <div class="hr"></div>
+      <div class="list">
+        ${getCutCoachTips().map(t=>`<div class="exercise"><div class="exercise-meta">${t}</div></div>`).join("")}
       </div>
     </div>
 
@@ -357,6 +430,7 @@ function homeView(){
   document.getElementById("btnSettings").onclick = settingsView;
 }
 
+/* ---------- Tracker ---------- */
 function trackerView(){
   setPill("Tracker");
   const t = loadTracker();
@@ -367,7 +441,6 @@ function trackerView(){
   const last7Avg = last7.length ? avg(last7.map(x=>Number(x.kg)||0)) : 0;
 
   const lastWaist = (t.waists||[]).slice().sort((a,b)=> a.date.localeCompare(b.date)).slice(-1)[0];
-
   const macrosSorted = (t.macros||[]).slice().sort((a,b)=> a.date.localeCompare(b.date));
   const lastMacro = macrosSorted.slice(-1)[0];
 
@@ -436,6 +509,7 @@ function trackerView(){
   };
 }
 
+/* ---------- Workout flow ---------- */
 function startWorkout(templateId){
   TEMPLATES = loadTemplates();
   const tpl = TEMPLATES.find(t=>t.id===templateId);
@@ -463,6 +537,7 @@ function startWorkout(templateId){
   workoutView();
   toast(`${tpl.name} started`);
 }
+
 function saveDraft(){ sessionStorage.setItem("steadylog.draft", JSON.stringify(activeWorkout)); }
 
 function addSet(exIndex){
@@ -471,6 +546,7 @@ function addSet(exIndex){
   saveDraft();
   workoutView();
 }
+
 function updateSet(exIndex, setIndex, field, value){
   const s = activeWorkout.exercises[exIndex].sets[setIndex];
   s[field] = (value === "" ? "" : Number(value));
@@ -490,6 +566,7 @@ function toggleDone(exIndex,setIndex){
     startTimer(secs);
   }
 }
+
 function deleteSet(exIndex,setIndex){
   activeWorkout.exercises[exIndex].sets.splice(setIndex,1);
   saveDraft();
@@ -570,7 +647,7 @@ function workoutView(){
 
   setFooterActions([
     {label:"Finish & Save", cls:"primary", onClick: finishWorkout},
-    {label:`Rest`, cls:"ghost", onClick: ()=> startTimer(Number(SETTINGS.restSeconds)||90)},
+    {label:"Rest", cls:"ghost", onClick: ()=> startTimer(Number(SETTINGS.restSeconds)||90)},
     {label:"Cancel", cls:"danger", onClick: cancelWorkout},
   ]);
 }
@@ -589,6 +666,7 @@ function finishWorkout(){
   resetFooterNav();
   homeView();
 }
+
 function cancelWorkout(){
   stopTimer();
   if(confirm("Cancel this workout? (Nothing will be saved)")){
@@ -600,6 +678,7 @@ function cancelWorkout(){
   }
 }
 
+/* ---------- History / Exercises ---------- */
 function historyView(){
   setPill("History");
   const sessions = loadSessions();
@@ -718,6 +797,7 @@ function exerciseDetailView(exId){
   document.getElementById("backEx").onclick = exercisesView;
 }
 
+/* ---------- Export ---------- */
 function trackerToCSV(tracker){
   const rows = [];
   rows.push("type,date,value");
@@ -772,6 +852,7 @@ function exportView(){
     }
   };
 }
+
 function downloadCSV(sessions){
   const rows=[["date","workout","exercise","set_index","kg","reps","session_notes","exercise_note"]];
   for(const ses of sessions){
@@ -786,6 +867,7 @@ function downloadCSV(sessions){
   toast("Workout CSV downloaded ✅");
 }
 
+/* ---------- Settings ---------- */
 function settingsView(){
   SETTINGS=loadSettings();
   setPill("Settings");
@@ -809,7 +891,7 @@ function settingsView(){
   document.getElementById("backHome").onclick = homeView;
 }
 
-/* Template editor (now includes Rest + Video fields) */
+/* ---------- Template editor (Rest + Video included) ---------- */
 function templatesView(){
   TEMPLATES = loadTemplates();
   setPill("Templates");
@@ -922,7 +1004,7 @@ function templateEditView(tplId){
   document.getElementById("backTpls").onclick = templatesView;
 }
 
-/* Boot */
+/* ---------- Boot ---------- */
 function boot(){
   if("serviceWorker" in navigator){
     navigator.serviceWorker.register("./sw.js").catch(()=>{});
