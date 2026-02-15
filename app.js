@@ -7,8 +7,9 @@
    - Editable templates (add/remove/reorder/change sets & rep targets)
    - Tracker tab (daily weight + weekly waist)
    - Export: workout CSV + tracker CSV
-   - NEW: Per-exercise rest seconds (visible + editable)
-   - NEW: Export/Import Templates (JSON backup)
+   - Per-exercise rest seconds (visible + editable)
+   - Export/Import Templates (JSON backup)
+   - Tracker streak + trends (7/14 day averages + 7-day change)
 */
 
 const STORAGE_KEY   = "steadylog.sessions.v2";
@@ -23,12 +24,12 @@ const DEFAULT_TEMPLATES = [
     name: "Upper A",
     subtitle: "Chest & Arms",
     exercises: [
-      { id:"incline_smith",    name:"Smith Incline Press",              sets:3, reps:"6–8",   rest:120 },
-      { id:"plate_row",        name:"Chest Supported Row (Plate)",      sets:3, reps:"8–12",  rest:90  },
-      { id:"flat_plate_press", name:"Plate Loaded Chest Press (Flat)",  sets:3, reps:"8–10",  rest:90  },
-      { id:"plate_shoulder",   name:"Plate Shoulder Press",             sets:3, reps:"8–10",  rest:90  },
-      { id:"tri_pushdown",     name:"Cable Tricep Pushdown",            sets:3, reps:"10–15", rest:60  },
-      { id:"preacher_curl",    name:"Preacher Curl Machine",            sets:3, reps:"10–15", rest:60  }
+      { id:"incline_smith",    name:"Smith Incline Press",              sets:3, reps:"6–8",     rest:120 },
+      { id:"plate_row",        name:"Chest Supported Row (Plate)",      sets:3, reps:"8–12",    rest:90  },
+      { id:"flat_plate_press", name:"Plate Loaded Chest Press (Flat)",  sets:3, reps:"8–10",    rest:90  },
+      { id:"plate_shoulder",   name:"Plate Shoulder Press",             sets:3, reps:"8–10",    rest:90  },
+      { id:"tri_pushdown",     name:"Cable Tricep Pushdown",            sets:3, reps:"10–15",   rest:60  },
+      { id:"preacher_curl",    name:"Preacher Curl Machine",            sets:3, reps:"10–15",   rest:60  }
     ]
   },
   {
@@ -36,11 +37,11 @@ const DEFAULT_TEMPLATES = [
     name: "Lower A",
     subtitle: "Quads",
     exercises: [
-      { id:"smith_squat",      name:"Smith Squat",                      sets:4, reps:"6–8",   rest:120 },
-      { id:"leg_press",        name:"45° Leg Press",                    sets:3, reps:"10–15", rest:120 },
-      { id:"lunges",           name:"Walking Lunges",                   sets:2, reps:"20 steps", rest:75 },
-      { id:"leg_ext",          name:"Leg Extension",                    sets:3, reps:"12–15", rest:60  },
-      { id:"standing_calves",  name:"Standing Calf Raise",              sets:3, reps:"15–20", rest:60  }
+      { id:"smith_squat",      name:"Smith Squat",                      sets:4, reps:"6–8",     rest:120 },
+      { id:"leg_press",        name:"45° Leg Press",                    sets:3, reps:"10–15",   rest:120 },
+      { id:"lunges",           name:"Walking Lunges",                   sets:2, reps:"20 steps",rest:75  },
+      { id:"leg_ext",          name:"Leg Extension",                    sets:3, reps:"12–15",   rest:60  },
+      { id:"standing_calves",  name:"Standing Calf Raise",              sets:3, reps:"15–20",   rest:60  }
     ]
   },
   {
@@ -48,12 +49,12 @@ const DEFAULT_TEMPLATES = [
     name: "Upper B",
     subtitle: "Back & Delts",
     exercises: [
-      { id:"assist_pullup",    name:"Assisted Pull-Up",                 sets:3, reps:"6–10",  rest:120 },
-      { id:"seated_row",       name:"Seated Row",                       sets:3, reps:"8–12",  rest:120 },
-      { id:"rear_delt",        name:"Rear Delt Machine",                sets:3, reps:"12–15", rest:60  },
-      { id:"face_pull",        name:"Face Pull",                        sets:3, reps:"12–15", rest:60  },
-      { id:"pec_deck",         name:"Pec Deck (Pump)",                  sets:2, reps:"12–15", rest:60  },
-      { id:"hammer_curl",      name:"Hammer Curl",                      sets:3, reps:"10–12", rest:60  }
+      { id:"assist_pullup",    name:"Assisted Pull-Up",                 sets:3, reps:"6–10",    rest:120 },
+      { id:"seated_row",       name:"Seated Row",                       sets:3, reps:"8–12",    rest:120 },
+      { id:"rear_delt",        name:"Rear Delt Machine",                sets:3, reps:"12–15",   rest:60  },
+      { id:"face_pull",        name:"Face Pull",                        sets:3, reps:"12–15",   rest:60  },
+      { id:"pec_deck",         name:"Pec Deck (Pump)",                  sets:2, reps:"12–15",   rest:60  },
+      { id:"hammer_curl",      name:"Hammer Curl",                      sets:3, reps:"10–12",   rest:60  }
     ]
   },
   {
@@ -61,11 +62,11 @@ const DEFAULT_TEMPLATES = [
     name: "Lower B",
     subtitle: "Hamstrings & Glutes",
     exercises: [
-      { id:"smith_rdl",        name:"Smith RDL",                        sets:3, reps:"6–8",   rest:120 },
-      { id:"hip_thrust",       name:"Hip Thrust Machine",               sets:3, reps:"8–10",  rest:120 },
-      { id:"lying_curl",       name:"Lying Leg Curl",                   sets:3, reps:"10–12", rest:60  },
-      { id:"smith_split",      name:"Smith Split Squat",                sets:2, reps:"10 / leg", rest:75 },
-      { id:"seated_calves",    name:"Seated Calf Raise",                sets:3, reps:"15–20", rest:60  }
+      { id:"smith_rdl",        name:"Smith RDL",                        sets:3, reps:"6–8",     rest:120 },
+      { id:"hip_thrust",       name:"Hip Thrust Machine",               sets:3, reps:"8–10",    rest:120 },
+      { id:"lying_curl",       name:"Lying Leg Curl",                   sets:3, reps:"10–12",   rest:60  },
+      { id:"smith_split",      name:"Smith Split Squat",                sets:2, reps:"10 / leg",rest:75  },
+      { id:"seated_calves",    name:"Seated Calf Raise",                sets:3, reps:"15–20",   rest:60  }
     ]
   }
 ];
@@ -131,15 +132,53 @@ function escapeAttr(str){
     .replaceAll('"',"&quot;");
 }
 
+function avg(arr){
+  if(!arr.length) return 0;
+  return arr.reduce((a,b)=>a+b,0)/arr.length;
+}
+
 /* Tracker */
 function loadTracker(){
   return loadJSON(TRACKER_KEY, { weights: [], waists: [] });
 }
 function saveTracker(t){ saveJSON(TRACKER_KEY, t); }
-function avg(arr){
-  if(!arr.length) return 0;
-  return arr.reduce((a,b)=>a+b,0)/arr.length;
+
+function calcWeightStreak(weights){
+  if(!weights.length) return 0;
+  const dates = weights.map(w=>w.date).sort((a,b)=> new Date(b)-new Date(a));
+
+  let streak = 0;
+  let cursor = new Date(todayYMD());
+
+  for(const d of dates){
+    const dd = new Date(d);
+    if(dd.toDateString() === cursor.toDateString()){
+      streak++;
+      cursor.setDate(cursor.getDate()-1);
+    }else{
+      break;
+    }
+  }
+  return streak;
 }
+
+function calcTrendAvg(weights, days){
+  if(weights.length < days) return null;
+  const sorted = weights.slice().sort((a,b)=> new Date(a.date)-new Date(b.date));
+  const recent = sorted.slice(-days);
+  return avg(recent.map(x=>Number(x.kg)||0));
+}
+
+function calcDelta7(weights){
+  // delta = today - 7 days ago (based on last 8 logged points in ascending date order)
+  if(weights.length < 8) return null;
+  const sorted = weights.slice().sort((a,b)=> new Date(a.date)-new Date(b.date));
+  const last = sorted[sorted.length-1];
+  const weekAgo = sorted[sorted.length-8];
+  if(!last || !weekAgo) return null;
+  return Number((Number(last.kg) - Number(weekAgo.kg)).toFixed(1));
+}
+
 function trackerToCSV(tracker){
   const rows = [];
   rows.push("type,date,value");
@@ -351,23 +390,37 @@ function trackerView(){
   const t = loadTracker();
   const d = todayYMD();
 
-  const weightsSorted = (t.weights||[]).slice().sort((a,b)=> (a.date>b.date?1:-1));
-  const last7 = weightsSorted.slice(-7);
-  const last7Avg = last7.length ? avg(last7.map(x=>Number(x.kg)||0)) : 0;
+  const weights = (t.weights||[]).slice().sort((a,b)=> (a.date>b.date?1:-1));
+  const lastWeight = weights.length ? weights[weights.length-1] : null;
 
-  const lastWaist = (t.waists||[]).slice().sort((a,b)=> (a.date>b.date?1:-1)).slice(-1)[0];
+  const waists = (t.waists||[]).slice().sort((a,b)=> (a.date>b.date?1:-1));
+  const lastWaist = waists.length ? waists[waists.length-1] : null;
+
+  const streak = calcWeightStreak(t.weights||[]);
+  const avg7 = calcTrendAvg(t.weights||[], 7);
+  const avg14 = calcTrendAvg(t.weights||[], 14);
+  const delta7 = calcDelta7(t.weights||[]);
 
   view.innerHTML = `
     <div class="card">
       <h2>Cut Tracker</h2>
-      <div class="exercise-meta">Log daily weight + weekly waist.</div>
+      <div class="exercise-meta">
+        Daily weigh-in + weekly waist. Focus on averages (not daily noise).
+      </div>
       <div class="hr"></div>
 
       <div class="section-title" style="margin-top:0;">Daily Weight</div>
       <input class="input" id="wtKg" inputmode="decimal" placeholder="Weight (kg)">
       <div style="height:10px"></div>
       <button class="btn primary" id="saveWeight">Save Weight</button>
-      <div class="sub" style="margin-top:10px;">Last 7-day avg: <b>${last7Avg ? last7Avg.toFixed(1) : "—"}</b></div>
+
+      <div class="sub" style="margin-top:10px;">
+        🔥 Streak: <b>${streak} day${streak!==1?"s":""}</b><br>
+        ✅ Last weigh-in: <b>${lastWeight ? `${lastWeight.kg} kg (${lastWeight.date})` : "—"}</b><br>
+        📊 7-day avg: <b>${avg7 ? avg7.toFixed(1) : "—"}</b><br>
+        📊 14-day avg: <b>${avg14 ? avg14.toFixed(1) : "—"}</b><br>
+        📉 7-day change: <b>${delta7!==null ? `${delta7} kg` : "—"}</b>
+      </div>
 
       <div class="hr"></div>
 
@@ -375,13 +428,13 @@ function trackerView(){
       <input class="input" id="waistCm" inputmode="decimal" placeholder="Waist (cm)">
       <div style="height:10px"></div>
       <button class="btn primary" id="saveWaist">Save Waist</button>
-      <div class="sub" style="margin-top:10px;">Last saved waist: <b>${lastWaist ? `${lastWaist.cm} cm (${lastWaist.date})` : "—"}</b></div>
+      <div class="sub" style="margin-top:10px;">Last waist: <b>${lastWaist ? `${lastWaist.cm} cm (${lastWaist.date})` : "—"}</b></div>
 
       <div class="hr"></div>
 
       <div class="section-title" style="margin-top:0;">Recent Weights</div>
       <div class="list">
-        ${(weightsSorted.slice(-10).reverse().map(x=>`
+        ${(weights.slice(-10).reverse().map(x=>`
           <div class="exercise">
             <div class="exercise-head">
               <div class="exercise-name">${x.kg} kg</div>
@@ -398,7 +451,7 @@ function trackerView(){
     if(!kg){ alert("Enter weight (kg)"); return; }
 
     const tt = loadTracker();
-    tt.weights = (tt.weights||[]).filter(x=>x.date!==d);
+    tt.weights = (tt.weights||[]).filter(x=>x.date!==d); // overwrite same day
     tt.weights.push({date:d, kg:Number(kg.toFixed(1))});
     saveTracker(tt);
     toast("Weight saved ✅");
@@ -410,7 +463,7 @@ function trackerView(){
     if(!cm){ alert("Enter waist (cm)"); return; }
 
     const tt = loadTracker();
-    tt.waists = (tt.waists||[]).filter(x=>x.date!==d);
+    tt.waists = (tt.waists||[]).filter(x=>x.date!==d); // overwrite same day
     tt.waists.push({date:d, cm:Number(cm.toFixed(1))});
     saveTracker(tt);
     toast("Waist saved ✅");
@@ -848,7 +901,6 @@ function templatesView(){
   `;
 
   view.querySelectorAll("[data-tpl]").forEach(b=> b.onclick = ()=> templateEditView(b.dataset.tpl));
-
   document.getElementById("backTplHome").onclick = homeView;
 
   document.getElementById("resetTpl").onclick = ()=>{
