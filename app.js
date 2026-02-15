@@ -21,37 +21,37 @@ const DEFAULT_TEMPLATES = [
     name: "Upper A",
     subtitle: "Chest & Arms",
     exercises: [
-      { id:"smith_bench", name:"Smith Bench Press", sets:3, reps:"8–10" },
-      { id:"chest_press", name:"Chest Press Machine", sets:3, reps:"10–12" },
-      { id:"row_machine", name:"Seated Row Machine", sets:3, reps:"10–12" },
-      { id:"shoulder_press", name:"Shoulder Press Machine", sets:3, reps:"8–10" },
-      { id:"tri_pushdown", name:"Tricep Pushdown", sets:3, reps:"12–15" },
-      { id:"preacher_curl", name:"Preacher Curl Machine", sets:3, reps:"12–15" },
+      { id:"incline_smith", name:"Smith Incline Press", sets:3, reps:"6–8" },
+      { id:"flat_plate_press", name:"Plate Loaded Chest Press (Flat)", sets:3, reps:"8–10" },
+      { id:"plate_row", name:"Chest Supported Row (Plate)", sets:3, reps:"8–12" },
+      { id:"plate_shoulder", name:"Plate Shoulder Press", sets:3, reps:"8–10" },
+      { id:"tri_pushdown", name:"Cable Tricep Pushdown", sets:3, reps:"10–15" },
+      { id:"preacher_curl", name:"Preacher Curl Machine", sets:3, reps:"10–15" }
     ]
   },
   {
     id: "lowerA",
     name: "Lower A",
-    subtitle: "Quads & Burn",
+    subtitle: "Quads",
     exercises: [
       { id:"smith_squat", name:"Smith Squat", sets:4, reps:"6–8" },
-      { id:"leg_press", name:"45° Leg Press", sets:3, reps:"12–15" },
-      { id:"walking_lunges", name:"Walking Lunges", sets:2, reps:"20 steps" },
+      { id:"leg_press", name:"45° Leg Press", sets:3, reps:"10–15" },
+      { id:"lunges", name:"Walking Lunges", sets:2, reps:"20 steps" },
       { id:"leg_ext", name:"Leg Extension", sets:3, reps:"12–15" },
-      { id:"standing_calves", name:"Standing Calf Raise", sets:3, reps:"15–20" },
+      { id:"standing_calves", name:"Standing Calf Raise", sets:3, reps:"15–20" }
     ]
   },
   {
     id: "upperB",
     name: "Upper B",
-    subtitle: "Back & Shoulders",
+    subtitle: "Back & Delts",
     exercises: [
-      { id:"lat_pulldown", name:"Lat Pulldown", sets:3, reps:"8–12" },
-      { id:"assist_pullup", name:"Assisted Pull-Up Machine", sets:3, reps:"6–10" },
-      { id:"pec_deck", name:"Pec Deck / Fly", sets:3, reps:"12–15" },
+      { id:"assist_pullup", name:"Assisted Pull-Up", sets:3, reps:"6–10" },
+      { id:"seated_row", name:"Seated Row", sets:3, reps:"8–12" },
       { id:"rear_delt", name:"Rear Delt Machine", sets:3, reps:"12–15" },
-      { id:"face_pull", name:"Face Pull (Cable)", sets:3, reps:"12–15" },
-      { id:"hammer_curl", name:"DB Hammer Curl", sets:3, reps:"10–12" },
+      { id:"face_pull", name:"Face Pull", sets:3, reps:"12–15" },
+      { id:"pec_deck", name:"Pec Deck (Pump)", sets:2, reps:"12–15" },
+      { id:"hammer_curl", name:"Hammer Curl", sets:3, reps:"10–12" }
     ]
   },
   {
@@ -59,11 +59,11 @@ const DEFAULT_TEMPLATES = [
     name: "Lower B",
     subtitle: "Hamstrings & Glutes",
     exercises: [
-      { id:"smith_rdl", name:"Smith Romanian Deadlift", sets:3, reps:"8–10" },
+      { id:"smith_rdl", name:"Smith RDL", sets:3, reps:"6–8" },
       { id:"hip_thrust", name:"Hip Thrust Machine", sets:3, reps:"8–10" },
       { id:"lying_curl", name:"Lying Leg Curl", sets:3, reps:"10–12" },
       { id:"smith_split", name:"Smith Split Squat", sets:2, reps:"10 / leg" },
-      { id:"seated_calves", name:"Seated Calf Raise", sets:3, reps:"15–20" },
+      { id:"seated_calves", name:"Seated Calf Raise", sets:3, reps:"15–20" }
     ]
   }
 ];
