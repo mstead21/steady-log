@@ -1,44 +1,46 @@
-/* Steady Log (V1.2 cache-fix) - iPhone PWA - weights-only (Dark Mode)
+/* Steady Log (PWA) - weights-only (Dark Mode)
    Features:
-   - Rest timer (60/90/120) + vibrate + auto-start on ✓
+   - Rest timer overlay + vibrate + auto-start on ✓
    - Suggested KG = last working set from last session for that exercise
    - Notes: per session + per exercise
    - PRs + recent progress
    - Editable templates (add/remove/reorder/change sets & rep targets)
-
-   Added:
    - Tracker tab (daily weight + weekly waist)
-   - Tracker CSV export
+   - Export: workout CSV + tracker CSV
+   - NEW: Per-exercise rest seconds (visible + editable)
+   - NEW: Export/Import Templates (JSON backup)
 */
-const STORAGE_KEY = "steadylog.sessions.v2";
-const SETTINGS_KEY = "steadylog.settings.v2";
-const TEMPLATES_KEY = "steadylog.templates.v2";
-const TRACKER_KEY  = "steadylog.tracker.v1";
 
+const STORAGE_KEY   = "steadylog.sessions.v2";
+const SETTINGS_KEY  = "steadylog.settings.v2";
+const TEMPLATES_KEY = "steadylog.templates.v2";
+const TRACKER_KEY   = "steadylog.tracker.v1";
+
+/* LOCKED DEFAULT PROGRAM (yours) + rest seconds */
 const DEFAULT_TEMPLATES = [
   {
     id: "upperA",
     name: "Upper A",
     subtitle: "Chest & Arms",
     exercises: [
-  { id:"incline_smith", name:"Smith Incline Press", sets:3, reps:"6–8" },
-  { id:"plate_row", name:"Chest Supported Row (Plate)", sets:3, reps:"8–12" },
-  { id:"flat_plate_press", name:"Plate Loaded Chest Press (Flat)", sets:3, reps:"8–10" },
-  { id:"plate_shoulder", name:"Plate Shoulder Press", sets:3, reps:"8–10" },
-  { id:"tri_pushdown", name:"Cable Tricep Pushdown", sets:3, reps:"10–15" },
-  { id:"preacher_curl", name:"Preacher Curl Machine", sets:3, reps:"10–15" }
-]
+      { id:"incline_smith",    name:"Smith Incline Press",              sets:3, reps:"6–8",   rest:120 },
+      { id:"plate_row",        name:"Chest Supported Row (Plate)",      sets:3, reps:"8–12",  rest:90  },
+      { id:"flat_plate_press", name:"Plate Loaded Chest Press (Flat)",  sets:3, reps:"8–10",  rest:90  },
+      { id:"plate_shoulder",   name:"Plate Shoulder Press",             sets:3, reps:"8–10",  rest:90  },
+      { id:"tri_pushdown",     name:"Cable Tricep Pushdown",            sets:3, reps:"10–15", rest:60  },
+      { id:"preacher_curl",    name:"Preacher Curl Machine",            sets:3, reps:"10–15", rest:60  }
+    ]
   },
   {
     id: "lowerA",
     name: "Lower A",
     subtitle: "Quads",
     exercises: [
-      { id:"smith_squat", name:"Smith Squat", sets:4, reps:"6–8" },
-      { id:"leg_press", name:"45° Leg Press", sets:3, reps:"10–15" },
-      { id:"lunges", name:"Walking Lunges", sets:2, reps:"20 steps" },
-      { id:"leg_ext", name:"Leg Extension", sets:3, reps:"12–15" },
-      { id:"standing_calves", name:"Standing Calf Raise", sets:3, reps:"15–20" }
+      { id:"smith_squat",      name:"Smith Squat",                      sets:4, reps:"6–8",   rest:120 },
+      { id:"leg_press",        name:"45° Leg Press",                    sets:3, reps:"10–15", rest:120 },
+      { id:"lunges",           name:"Walking Lunges",                   sets:2, reps:"20 steps", rest:75 },
+      { id:"leg_ext",          name:"Leg Extension",                    sets:3, reps:"12–15", rest:60  },
+      { id:"standing_calves",  name:"Standing Calf Raise",              sets:3, reps:"15–20", rest:60  }
     ]
   },
   {
@@ -46,12 +48,12 @@ const DEFAULT_TEMPLATES = [
     name: "Upper B",
     subtitle: "Back & Delts",
     exercises: [
-      { id:"assist_pullup", name:"Assisted Pull-Up", sets:3, reps:"6–10" },
-      { id:"seated_row", name:"Seated Row", sets:3, reps:"8–12" },
-      { id:"rear_delt", name:"Rear Delt Machine", sets:3, reps:"12–15" },
-      { id:"face_pull", name:"Face Pull", sets:3, reps:"12–15" },
-      { id:"pec_deck", name:"Pec Deck (Pump)", sets:2, reps:"12–15" },
-      { id:"hammer_curl", name:"Hammer Curl", sets:3, reps:"10–12" }
+      { id:"assist_pullup",    name:"Assisted Pull-Up",                 sets:3, reps:"6–10",  rest:120 },
+      { id:"seated_row",       name:"Seated Row",                       sets:3, reps:"8–12",  rest:120 },
+      { id:"rear_delt",        name:"Rear Delt Machine",                sets:3, reps:"12–15", rest:60  },
+      { id:"face_pull",        name:"Face Pull",                        sets:3, reps:"12–15", rest:60  },
+      { id:"pec_deck",         name:"Pec Deck (Pump)",                  sets:2, reps:"12–15", rest:60  },
+      { id:"hammer_curl",      name:"Hammer Curl",                      sets:3, reps:"10–12", rest:60  }
     ]
   },
   {
@@ -59,21 +61,24 @@ const DEFAULT_TEMPLATES = [
     name: "Lower B",
     subtitle: "Hamstrings & Glutes",
     exercises: [
-      { id:"smith_rdl", name:"Smith RDL", sets:3, reps:"6–8" },
-      { id:"hip_thrust", name:"Hip Thrust Machine", sets:3, reps:"8–10" },
-      { id:"lying_curl", name:"Lying Leg Curl", sets:3, reps:"10–12" },
-      { id:"smith_split", name:"Smith Split Squat", sets:2, reps:"10 / leg" },
-      { id:"seated_calves", name:"Seated Calf Raise", sets:3, reps:"15–20" }
+      { id:"smith_rdl",        name:"Smith RDL",                        sets:3, reps:"6–8",   rest:120 },
+      { id:"hip_thrust",       name:"Hip Thrust Machine",               sets:3, reps:"8–10",  rest:120 },
+      { id:"lying_curl",       name:"Lying Leg Curl",                   sets:3, reps:"10–12", rest:60  },
+      { id:"smith_split",      name:"Smith Split Squat",                sets:2, reps:"10 / leg", rest:75 },
+      { id:"seated_calves",    name:"Seated Calf Raise",                sets:3, reps:"15–20", rest:60  }
     ]
   }
 ];
 
+/* Utils */
 function nowISO(){ return new Date().toISOString(); }
 function todayYMD(){ return new Date().toISOString().slice(0,10); }
 
 function fmtDate(iso){
   const d = new Date(iso);
-  return d.toLocaleString(undefined, { weekday:"short", year:"numeric", month:"short", day:"numeric", hour:"2-digit", minute:"2-digit" });
+  return d.toLocaleString(undefined, {
+    weekday:"short", year:"numeric", month:"short", day:"numeric", hour:"2-digit", minute:"2-digit"
+  });
 }
 
 function toast(msg){
@@ -89,8 +94,12 @@ function vibrate(pattern=[120,60,120]){
 }
 
 function loadJSON(key, fallback){
-  try{ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }
-  catch(e){ return fallback; }
+  try{
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  }catch(e){
+    return fallback;
+  }
 }
 function saveJSON(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
 
@@ -106,13 +115,27 @@ function downloadText(filename, text, mime="text/plain"){
   URL.revokeObjectURL(url);
 }
 
-/* Tracker storage */
+function escapeHtml(str){
+  return String(str)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+function escapeAttr(str){
+  return String(str ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;");
+}
+
+/* Tracker */
 function loadTracker(){
   return loadJSON(TRACKER_KEY, { weights: [], waists: [] });
 }
-function saveTracker(t){
-  saveJSON(TRACKER_KEY, t);
-}
+function saveTracker(t){ saveJSON(TRACKER_KEY, t); }
 function avg(arr){
   if(!arr.length) return 0;
   return arr.reduce((a,b)=>a+b,0)/arr.length;
@@ -147,30 +170,13 @@ function setPill(text){
   if(pill) pill.textContent = text;
 }
 
-function escapeHtml(str){
-  return String(str)
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
-function escapeAttr(str){
-  return String(str ?? "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;");
-}
-
+/* Suggested KG */
 function getLastSetsForExercise(exId){
   const sessions = loadSessions();
   for(let i=sessions.length-1;i>=0;i--){
     const ses = sessions[i];
     for(const ex of ses.exercises){
-      if(ex.id === exId && ex.sets && ex.sets.length){
-        return ex.sets;
-      }
+      if(ex.id === exId && ex.sets && ex.sets.length) return ex.sets;
     }
   }
   return [];
@@ -178,14 +184,16 @@ function getLastSetsForExercise(exId){
 function getSuggestedKg(exId){
   const lastSets = getLastSetsForExercise(exId);
   if(!lastSets.length) return "";
-  const last = lastSets[lastSets.length - 1];
+  const last = lastSets[lastSets.length-1];
   return (Number(last.kg) || "");
 }
 
+/* Stats */
 function computeStats(){
   const sessions = loadSessions();
   const total = sessions.length;
   const last = total ? sessions[sessions.length-1].startedAt : null;
+
   const best = {};
   for(const ses of sessions){
     for(const ex of ses.exercises){
@@ -271,7 +279,6 @@ let activeWorkout=null;
 
 function resetFooterNav(){
   const wrap = document.querySelector(".footerbar .wrap");
-
   wrap.innerHTML = `
     <button class="btn ghost" id="navHome">Home</button>
     <button class="btn ghost" id="navHistory">History</button>
@@ -292,7 +299,6 @@ function setFooterActions(actions){
   wrap.innerHTML = actions
     .map((a,i)=>`<button class="btn ${a.cls||"ghost"}" data-foot="${i}">${a.label}</button>`)
     .join("");
-
   wrap.querySelectorAll("[data-foot]").forEach(btn=>{
     btn.onclick = ()=> actions[Number(btn.dataset.foot)].onClick();
   });
@@ -311,14 +317,16 @@ function homeView(){
       <div class="hr"></div>
       <div class="grid">
         ${TEMPLATES.map(t=>`
-          <button class="btn primary" data-action="start" data-id="${t.id}">${t.name}<span class="tag">${t.subtitle||""}</span></button>
+          <button class="btn primary" data-action="start" data-id="${t.id}">
+            ${t.name}<span class="tag">${t.subtitle||""}</span>
+          </button>
         `).join("")}
       </div>
       <div class="hr"></div>
       <div class="list">
         <div class="exercise"><div class="exercise-name">${stats.total}</div><div class="exercise-meta">sessions logged</div></div>
         <div class="exercise"><div class="exercise-name">${lastText}</div><div class="exercise-meta">last session</div></div>
-        <div class="exercise"><div class="exercise-name">${SETTINGS.restSeconds}s</div><div class="exercise-meta">rest timer</div></div>
+        <div class="exercise"><div class="exercise-name">${SETTINGS.restSeconds}s</div><div class="exercise-meta">default rest</div></div>
       </div>
     </div>
 
@@ -337,6 +345,7 @@ function homeView(){
   document.getElementById("btnSettings").onclick = settingsView;
 }
 
+/* Tracker view */
 function trackerView(){
   setPill("Tracker");
   const t = loadTracker();
@@ -389,7 +398,6 @@ function trackerView(){
     if(!kg){ alert("Enter weight (kg)"); return; }
 
     const tt = loadTracker();
-    // replace same-day entry
     tt.weights = (tt.weights||[]).filter(x=>x.date!==d);
     tt.weights.push({date:d, kg:Number(kg.toFixed(1))});
     saveTracker(tt);
@@ -410,6 +418,7 @@ function trackerView(){
   };
 }
 
+/* Workout flow */
 function startWorkout(templateId){
   TEMPLATES = loadTemplates();
   const tpl = TEMPLATES.find(t=>t.id===templateId);
@@ -427,6 +436,7 @@ function startWorkout(templateId){
       name: ex.name,
       targetSets: Number(ex.sets)||0,
       targetReps: ex.reps || "",
+      restSeconds: Number(ex.rest)||0,
       note: "",
       sets: []
     }))
@@ -458,11 +468,15 @@ function toggleDone(exIndex,setIndex){
   s.done = !s.done;
   saveDraft();
   workoutView();
+
   if(s.done){
-    SETTINGS=loadSettings();
-    startTimer(Number(SETTINGS.restSeconds)||90);
+    SETTINGS = loadSettings();
+    const perEx = Number(activeWorkout.exercises[exIndex].restSeconds) || 0;
+    const fallback = Number(SETTINGS.restSeconds) || 90;
+    startTimer(perEx || fallback);
   }
 }
+
 function deleteSet(exIndex,setIndex){
   activeWorkout.exercises[exIndex].sets.splice(setIndex,1);
   saveDraft();
@@ -470,12 +484,13 @@ function deleteSet(exIndex,setIndex){
 }
 
 function workoutView(){
-  SETTINGS=loadSettings();
+  SETTINGS = loadSettings();
   setPill("In session");
+
   view.innerHTML = `
     <div class="card">
       <h2>${activeWorkout.name}<span class="tag">${activeWorkout.subtitle||""}</span></h2>
-      <div class="exercise-meta">Started: ${fmtDate(activeWorkout.startedAt)} • Rest: ${SETTINGS.restSeconds}s</div>
+      <div class="exercise-meta">Started: ${fmtDate(activeWorkout.startedAt)} • Default Rest: ${SETTINGS.restSeconds}s</div>
       <div class="hr"></div>
 
       <div class="section-title" style="margin-top:0;">Session Notes</div>
@@ -487,12 +502,14 @@ function workoutView(){
         ${activeWorkout.exercises.map((ex,idx)=>{
           const last = getLastSetsForExercise(ex.id);
           const lastStr = last.length ? last.slice(0,3).map(s=>`${s.kg}kg×${s.reps}`).join(", ") : "—";
+          const rest = Number(ex.restSeconds) || Number(SETTINGS.restSeconds) || 90;
+
           return `
             <div class="exercise">
               <div class="exercise-head">
                 <div>
                   <div class="exercise-name">${ex.name}</div>
-                  <div class="exercise-meta">🎯 ${ex.targetSets} sets • ${ex.targetReps} • Last: ${lastStr}</div>
+                  <div class="exercise-meta">🎯 ${ex.targetSets} sets • ${ex.targetReps} • Rest: ${rest}s • Last: ${lastStr}</div>
                 </div>
                 <button class="btn" style="width:auto;padding:10px 12px" data-add="${idx}">+ Set</button>
               </div>
@@ -519,17 +536,22 @@ function workoutView(){
   document.getElementById("sessionNotes").oninput = (e)=> updateSessionNotes(e.target.value);
   view.querySelectorAll("[data-add]").forEach(b=> b.onclick = ()=> addSet(Number(b.dataset.add)));
   view.querySelectorAll("[data-exnote]").forEach(inp=> inp.oninput = (e)=> updateExerciseNote(Number(inp.dataset.exnote), e.target.value));
+
   view.querySelectorAll("[data-kg]").forEach(inp=> inp.oninput = (e)=>{
-    const [i,j]=inp.dataset.kg.split(":").map(Number); updateSet(i,j,"kg", e.target.value);
+    const [i,j]=inp.dataset.kg.split(":").map(Number);
+    updateSet(i,j,"kg", e.target.value);
   });
   view.querySelectorAll("[data-reps]").forEach(inp=> inp.oninput = (e)=>{
-    const [i,j]=inp.dataset.reps.split(":").map(Number); updateSet(i,j,"reps", e.target.value);
+    const [i,j]=inp.dataset.reps.split(":").map(Number);
+    updateSet(i,j,"reps", e.target.value);
   });
   view.querySelectorAll("[data-done]").forEach(btn=> btn.onclick = ()=>{
-    const [i,j]=btn.dataset.done.split(":").map(Number); toggleDone(i,j);
+    const [i,j]=btn.dataset.done.split(":").map(Number);
+    toggleDone(i,j);
   });
   view.querySelectorAll("[data-del]").forEach(btn=> btn.onclick = ()=>{
-    const [i,j]=btn.dataset.del.split(":").map(Number); deleteSet(i,j);
+    const [i,j]=btn.dataset.del.split(":").map(Number);
+    deleteSet(i,j);
   });
 
   setFooterActions([
@@ -547,12 +569,14 @@ function finishWorkout(){
   const sessions = loadSessions();
   sessions.push(activeWorkout);
   saveSessions(sessions);
+
   sessionStorage.removeItem("steadylog.draft");
   activeWorkout=null;
   toast("Saved ✅");
   resetFooterNav();
   homeView();
 }
+
 function cancelWorkout(){
   stopTimer();
   if(confirm("Cancel this workout? (Nothing will be saved)")){
@@ -564,6 +588,7 @@ function cancelWorkout(){
   }
 }
 
+/* History */
 function historyView(){
   setPill("History");
   const sessions = loadSessions();
@@ -582,9 +607,10 @@ function historyView(){
 }
 
 function sessionDetailView(id){
-  const sessions=loadSessions();
-  const s=sessions.find(x=>x.id===id);
+  const sessions = loadSessions();
+  const s = sessions.find(x=>x.id===id);
   if(!s){ historyView(); return; }
+
   setPill("Session");
   view.innerHTML = `
     <div class="card">
@@ -596,7 +622,7 @@ function sessionDetailView(id){
         ${s.exercises.map(ex=>`
           <div class="exercise">
             <div class="exercise-name">${ex.name}</div>
-            <div class="exercise-meta">🎯 ${ex.targetSets} • ${ex.targetReps}</div>
+            <div class="exercise-meta">🎯 ${ex.targetSets} • ${ex.targetReps} • Rest: ${(ex.restSeconds||0)}s</div>
             ${ex.note?`<div class="exercise-meta"><b>Note:</b> ${escapeHtml(ex.note)}</div>`:""}
             <div class="hr"></div>
             <div class="exercise-meta">${(ex.sets||[]).map(st=>`${st.kg}kg×${st.reps}`).join(" • ") || "—"}</div>
@@ -606,7 +632,9 @@ function sessionDetailView(id){
       <button class="btn danger" id="delSes">Delete session</button>
       <div style="height:10px"></div>
       <button class="btn" id="backHist">Back</button>
-    </div>`;
+    </div>
+  `;
+
   document.getElementById("backHist").onclick = historyView;
   document.getElementById("delSes").onclick = ()=>{
     if(confirm("Delete this session permanently?")){
@@ -617,14 +645,18 @@ function sessionDetailView(id){
   };
 }
 
+/* Exercises */
 function exercisesView(){
   setPill("Exercises");
   const stats = computeStats();
+
   const exMap = new Map();
   for(const t of loadTemplates()){
     for(const ex of (t.exercises||[])) exMap.set(ex.id, ex.name);
   }
-  const exList = Array.from(exMap.entries()).map(([id,name])=>({id,name})).sort((a,b)=>a.name.localeCompare(b.name));
+  const exList = Array.from(exMap.entries())
+    .map(([id,name])=>({id,name}))
+    .sort((a,b)=>a.name.localeCompare(b.name));
 
   view.innerHTML = `
     <div class="card">
@@ -639,31 +671,37 @@ function exercisesView(){
       </div>
       <div class="hr"></div>
       <button class="btn" id="editTplFromEx">Edit Templates</button>
-    </div>`;
+    </div>
+  `;
+
   view.querySelectorAll("[data-ex]").forEach(b=> b.onclick = ()=> exerciseDetailView(b.dataset.ex));
   document.getElementById("editTplFromEx").onclick = templatesView;
 }
 
 function exerciseDetailView(exId){
-  const sessions=loadSessions();
-  const entries=[];
-  let name=exId;
+  const sessions = loadSessions();
+  const entries = [];
+  let name = exId;
+
   for(const ses of sessions){
     for(const ex of ses.exercises){
       if(ex.id===exId){
-        name=ex.name;
+        name = ex.name;
         for(const st of (ex.sets||[])) entries.push({at:ses.startedAt, kg:st.kg, reps:st.reps});
       }
     }
   }
   entries.sort((a,b)=> new Date(b.at)-new Date(a.at));
+
   const best = entries.reduce((acc,cur)=>{
     if(!acc) return cur;
     if(cur.kg>acc.kg) return cur;
     if(cur.kg===acc.kg && cur.reps>acc.reps) return cur;
     return acc;
   }, null);
+
   const recent = entries.slice(0,12);
+
   setPill("Exercise");
   view.innerHTML = `
     <div class="card">
@@ -673,41 +711,43 @@ function exerciseDetailView(exId){
       <div class="section-title" style="margin-top:0;">Recent Progress</div>
       <div class="list">
         ${recent.length ? recent.map(e=>`
-          <div class="exercise"><div class="exercise-name">${e.kg}kg × ${e.reps}</div><div class="exercise-meta">${new Date(e.at).toLocaleDateString()}</div></div>
+          <div class="exercise">
+            <div class="exercise-name">${e.kg}kg × ${e.reps}</div>
+            <div class="exercise-meta">${new Date(e.at).toLocaleDateString()}</div>
+          </div>
         `).join("") : `<div class="exercise"><div class="exercise-meta">No logs yet for this exercise.</div></div>`}
       </div>
       <div class="hr"></div>
       <button class="btn" id="backEx">Back</button>
-    </div>`;
+    </div>
+  `;
   document.getElementById("backEx").onclick = exercisesView;
 }
 
+/* Export */
 function exportView(){
   setPill("Export");
   view.innerHTML = `
     <div class="card">
       <h2>Export</h2>
-      <div class="exercise-meta">Download a CSV backup.</div>
+      <div class="exercise-meta">Download backups.</div>
       <div class="hr"></div>
 
-      <button class="btn primary" id="btnCsv">Download CSV</button>
+      <button class="btn primary" id="btnCsv">Download Workout CSV</button>
       <button class="btn" id="btnExportTracker">Export Tracker CSV</button>
 
       <div style="height:10px"></div>
 
       <button class="btn danger" id="btnWipe">Wipe all data</button>
-    </div>`;
+    </div>
+  `;
 
   document.getElementById("btnCsv").onclick = ()=> downloadCSV(loadSessions());
 
   document.getElementById("btnExportTracker").onclick = ()=>{
     const t = loadTracker();
     const csv = trackerToCSV(t);
-    downloadText(
-      `steady-tracker-${new Date().toISOString().slice(0,10)}.csv`,
-      csv,
-      "text/csv"
-    );
+    downloadText(`steady-tracker-${new Date().toISOString().slice(0,10)}.csv`, csv, "text/csv");
     toast("Tracker CSV downloaded ✅");
   };
 
@@ -729,95 +769,125 @@ function downloadCSV(sessions){
   for(const ses of sessions){
     for(const ex of ses.exercises){
       (ex.sets||[]).forEach((st,idx)=>{
-        rows.push([ses.startedAt,ses.name,ex.name,String(idx+1),String(st.kg),String(st.reps),ses.notes||"",ex.note||""]);
+        rows.push([
+          ses.startedAt,
+          ses.name,
+          ex.name,
+          String(idx+1),
+          String(st.kg),
+          String(st.reps),
+          ses.notes||"",
+          ex.note||""
+        ]);
       });
     }
   }
-  const csv = rows.map(r=> r.map(v=> `"${String(v).replaceAll('"','""')}"`).join(",")).join("\n");
-  const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
-  const url = URL.createObjectURL(blob);
-  const a=document.createElement("a");
-  a.href=url; a.download=`steady-log-${new Date().toISOString().slice(0,10)}.csv`;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),1000);
-  toast("CSV downloaded");
+  const csv = rows
+    .map(r=> r.map(v=> `"${String(v).replaceAll('"','""')}"`).join(","))
+    .join("\n");
+
+  downloadText(`steady-log-${new Date().toISOString().slice(0,10)}.csv`, csv, "text/csv");
+  toast("Workout CSV downloaded ✅");
 }
 
+/* Settings */
 function settingsView(){
-  SETTINGS=loadSettings();
+  SETTINGS = loadSettings();
   setPill("Settings");
+
   view.innerHTML = `
     <div class="card">
       <h2>Timer Settings</h2>
-      <div class="exercise-meta">Auto-starts when you tap ✓ on a set.</div>
+      <div class="exercise-meta">Default rest used when an exercise rest is not set.</div>
       <div class="hr"></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
         ${[60,90,120].map(s=>`<button class="btn ${SETTINGS.restSeconds===s?"primary":"ghost"}" style="width:auto" data-s="${s}">${s}s</button>`).join("")}
       </div>
       <div class="hr"></div>
       <button class="btn" id="backHome">Back</button>
-    </div>`;
+    </div>
+  `;
+
   view.querySelectorAll("[data-s]").forEach(b=> b.onclick = ()=>{
     SETTINGS.restSeconds = Number(b.dataset.s);
     saveSettings(SETTINGS);
-    toast(`Rest set to ${SETTINGS.restSeconds}s`);
+    toast(`Default rest set to ${SETTINGS.restSeconds}s`);
     settingsView();
   });
+
   document.getElementById("backHome").onclick = homeView;
 }
 
-/* Template editor */
+/* Template editor + Export/Import */
 function templatesView(){
   TEMPLATES = loadTemplates();
   setPill("Templates");
+
   view.innerHTML = `
     <div class="card">
       <h2>Edit Templates</h2>
       <div class="hr"></div>
       <div class="list">
-        ${TEMPLATES.map(t=>`<button class="btn" data-tpl="${t.id}">${t.name}<span class="tag">${t.subtitle||""}</span></button>`).join("")}
+        ${TEMPLATES.map(t=>`
+          <button class="btn" data-tpl="${t.id}">
+            ${t.name}<span class="tag">${t.subtitle||""}</span>
+          </button>
+        `).join("")}
       </div>
       <div class="hr"></div>
+
       <button class="btn danger" id="resetTpl">Reset to default</button>
       <div style="height:10px"></div>
-      <button class="btn" id="backTplHome">Back</button>
-    </div>`;
-  view.querySelectorAll("[data-tpl]").forEach(b=> b.onclick = ()=> templateEditView(b.dataset.tpl));
-  document.getElementById("backTplHome").onclick = homeView;
-  document.getElementById("resetTpl").onclick = ()=>{
-document.getElementById("exportTpl").onclick = ()=>{
-  const data = JSON.stringify(loadTemplates(), null, 2);
-  downloadText("steady-templates.json", data, "application/json");
-  toast("Templates exported ✅");
-};
+      <button class="btn" id="exportTpl">Export Templates (JSON)</button>
+      <div style="height:10px"></div>
+      <button class="btn" id="importTpl">Import Templates (JSON)</button>
 
-document.getElementById("importTpl").onclick = ()=>{
-  const input = document.createElement("input");
-  input.type = "file";
-  input.accept = "application/json";
-  input.onchange = (e)=>{
-    const file = e.target.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = ()=>{
-      try{
-        const parsed = JSON.parse(reader.result);
-        saveTemplates(parsed);
-        toast("Templates imported ✅");
-        templatesView();
-      }catch(err){
-        alert("Invalid file");
-      }
-    };
-    reader.readAsText(file);
-  };
-  input.click();
-};
-     if(confirm("Reset templates to default?")){
+      <div style="height:10px"></div>
+      <button class="btn" id="backTplHome">Back</button>
+    </div>
+  `;
+
+  view.querySelectorAll("[data-tpl]").forEach(b=> b.onclick = ()=> templateEditView(b.dataset.tpl));
+
+  document.getElementById("backTplHome").onclick = homeView;
+
+  document.getElementById("resetTpl").onclick = ()=>{
+    if(confirm("Reset templates to default program?")){
       saveTemplates(DEFAULT_TEMPLATES);
-      toast("Templates reset");
+      toast("Templates reset ✅");
       templatesView();
     }
+  };
+
+  document.getElementById("exportTpl").onclick = ()=>{
+    const data = JSON.stringify(loadTemplates(), null, 2);
+    downloadText("steady-templates.json", data, "application/json");
+    toast("Templates exported ✅");
+  };
+
+  document.getElementById("importTpl").onclick = ()=>{
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "application/json";
+    input.onchange = (e)=>{
+      const file = e.target.files && e.target.files[0];
+      if(!file) return;
+
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        try{
+          const parsed = JSON.parse(reader.result);
+          if(!Array.isArray(parsed)) throw new Error("Not array");
+          saveTemplates(parsed);
+          toast("Templates imported ✅");
+          templatesView();
+        }catch(err){
+          alert("Invalid templates file");
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
   };
 }
 
@@ -825,55 +895,67 @@ function templateEditView(tplId){
   TEMPLATES = loadTemplates();
   const idx = TEMPLATES.findIndex(t=>t.id===tplId);
   if(idx<0){ templatesView(); return; }
+
   const tpl = TEMPLATES[idx];
   setPill("Edit");
+
   view.innerHTML = `
     <div class="card">
       <h2>${tpl.name}<span class="tag">${tpl.subtitle||""}</span></h2>
       <div class="hr"></div>
+
       <div class="list">
         ${(tpl.exercises||[]).map((ex,i)=>`
           <div class="exercise">
             <div class="exercise-head">
               <div style="flex:1">
                 <input class="input" style="width:100%;font-weight:900" value="${escapeAttr(ex.name)}" data-edit="name" data-i="${i}">
-                <div style="display:flex;gap:10px;margin-top:8px;">
-                  <input class="input" inputmode="numeric" style="max-width:110px" value="${ex.sets}" data-edit="sets" data-i="${i}">
-                  <input class="input" style="flex:1" value="${escapeAttr(ex.reps)}" data-edit="reps" data-i="${i}">
+
+                <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;">
+                  <input class="input" inputmode="numeric" style="max-width:110px" value="${ex.sets}" data-edit="sets" data-i="${i}" placeholder="Sets">
+                  <input class="input" style="flex:1; min-width:160px" value="${escapeAttr(ex.reps)}" data-edit="reps" data-i="${i}" placeholder="Reps (e.g. 8–10)">
+                  <input class="input" inputmode="numeric" style="max-width:130px" value="${Number(ex.rest)||0}" data-edit="rest" data-i="${i}" placeholder="Rest (sec)">
                 </div>
               </div>
+
               <div style="display:flex;flex-direction:column;gap:8px;">
                 <button class="smallbtn" data-move="up" data-i="${i}">↑</button>
                 <button class="smallbtn" data-move="down" data-i="${i}">↓</button>
                 <button class="smallbtn del" data-del="${i}">🗑</button>
               </div>
             </div>
-          </div>`).join("")}
+          </div>
+        `).join("")}
       </div>
+
       <div class="hr"></div>
       <div style="display:flex;gap:10px">
         <button class="btn primary" id="addEx">+ Add Exercise</button>
         <button class="btn" id="saveTplBtn">Save</button>
       </div>
+
       <div style="height:10px"></div>
       <button class="btn" id="backTpls">Back</button>
-    </div>`;
+    </div>
+  `;
 
   view.querySelectorAll("[data-edit]").forEach(inp=>{
     inp.oninput = ()=>{
-      const i=Number(inp.dataset.i);
-      const field=inp.dataset.edit;
+      const i = Number(inp.dataset.i);
+      const field = inp.dataset.edit;
+
       if(field==="sets") tpl.exercises[i][field] = Number(inp.value)||0;
+      else if(field==="rest") tpl.exercises[i][field] = Number(inp.value)||0;
       else tpl.exercises[i][field] = inp.value;
     };
   });
 
   view.querySelectorAll("[data-move]").forEach(btn=>{
     btn.onclick = ()=>{
-      const i=Number(btn.dataset.i);
+      const i = Number(btn.dataset.i);
       const j = btn.dataset.move==="up" ? i-1 : i+1;
       if(j<0 || j>=tpl.exercises.length) return;
-      const tmp=tpl.exercises[i]; tpl.exercises[i]=tpl.exercises[j]; tpl.exercises[j]=tmp;
+      const tmp = tpl.exercises[i]; tpl.exercises[i]=tpl.exercises[j]; tpl.exercises[j]=tmp;
       TEMPLATES[idx]=tpl; saveTemplates(TEMPLATES);
       templateEditView(tplId);
     };
@@ -881,7 +963,7 @@ function templateEditView(tplId){
 
   view.querySelectorAll("[data-del]").forEach(btn=>{
     btn.onclick = ()=>{
-      const i=Number(btn.dataset.del);
+      const i = Number(btn.dataset.del);
       if(confirm("Delete this exercise?")){
         tpl.exercises.splice(i,1);
         TEMPLATES[idx]=tpl; saveTemplates(TEMPLATES);
@@ -891,14 +973,16 @@ function templateEditView(tplId){
   });
 
   document.getElementById("addEx").onclick = ()=>{
-    tpl.exercises.push({id:crypto.randomUUID(), name:"New Exercise", sets:3, reps:"10–12"});
+    tpl.exercises.push({ id: crypto.randomUUID(), name:"New Exercise", sets:3, reps:"10–12", rest:90 });
     TEMPLATES[idx]=tpl; saveTemplates(TEMPLATES);
     templateEditView(tplId);
   };
+
   document.getElementById("saveTplBtn").onclick = ()=>{
     TEMPLATES[idx]=tpl; saveTemplates(TEMPLATES);
     toast("Template saved ✅");
   };
+
   document.getElementById("backTpls").onclick = templatesView;
 }
 
