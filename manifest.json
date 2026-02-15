@@ -1,8 +1,9 @@
 {
-"name": "Steady Log",
-"short_name": "Steady",
-"start_url": ".",
-"display": "standalone",
-"background_color": "#0c0c10",
-"theme_color": "#0c0c10"
+  "name": "Steady Log",
+  "short_name": "Steady Log",
+  "start_url": "./?v=20260215_01",
+  "display": "standalone",
+  "background_color": "#0c0c10",
+  "theme_color": "#0c0c10",
+  "icons": []
 }
