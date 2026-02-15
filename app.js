@@ -1,10 +1,11 @@
-/* Steady Log (V1.4 full upgrade) - iPhone PWA - weights-only (Dark Mode)
-   Upgrades:
+/* Steady Log (V1.5 full upgrade) - iPhone PWA - weights-only (Dark Mode)
+   Includes:
    - Per-exercise rest timer (auto-start on ✓)
    - Tracker: daily weight + daily macros + weekly waist
    - Streak + trends (7-day avg, streak counter)
    - Video link button per exercise
    - Export: workout CSV + tracker CSV
+   - Template Pack: Copy + Import (share programs easily)
 */
 const STORAGE_KEY  = "steadylog.sessions.v2";
 const SETTINGS_KEY = "steadylog.settings.v2";
@@ -17,12 +18,12 @@ const DEFAULT_TEMPLATES = [
     name:"Upper A",
     subtitle:"Chest & Arms",
     exercises:[
-      { id:"incline_smith_press", name:"Incline Smith Press", sets:3, reps:"8–10", rest:120, video:"https://www.youtube.com/watch?v=b8DqTO6ak0k" }, // :contentReference[oaicite:0]{index=0}
-      { id:"chest_supported_row", name:"Chest Supported Row (Plate Loaded)", sets:3, reps:"10–12", rest:120, video:"https://www.youtube.com/watch?v=BeTZjAneZpk" }, // :contentReference[oaicite:1]{index=1}
-      { id:"incline_plate_chest_press", name:"Incline Plate Chest Press Machine", sets:3, reps:"10–12", rest:90, video:"https://www.youtube.com/watch?v=O2OxhEcpxmw" }, // (search earlier block; keep editable)
-      { id:"shoulder_press", name:"Shoulder Press Machine", sets:3, reps:"8–10", rest:120, video:"https://www.youtube.com/watch?v=ef-hOkkRuY0" }, // :contentReference[oaicite:2]{index=2}
-      { id:"tri_pushdown", name:"Tricep Pushdown (Cable)", sets:3, reps:"12–15", rest:60, video:"https://www.youtube.com/watch?v=odbyvJm7d8s" }, // :contentReference[oaicite:3]{index=3}
-      { id:"preacher_curl", name:"Preacher Curl Machine", sets:3, reps:"12–15", rest:60, video:"https://www.youtube.com/watch?v=to3m8zws1n8" }, // :contentReference[oaicite:4]{index=4}
+      { id:"incline_smith_press", name:"Incline Smith Press", sets:3, reps:"8–10", rest:120, video:"https://www.youtube.com/watch?v=b8DqTO6ak0k" },
+      { id:"chest_supported_row", name:"Chest Supported Row (Plate Loaded)", sets:3, reps:"10–12", rest:120, video:"https://www.youtube.com/watch?v=BeTZjAneZpk" },
+      { id:"incline_plate_chest_press", name:"Incline Plate Chest Press Machine", sets:3, reps:"10–12", rest:90,  video:"https://www.youtube.com/watch?v=O2OxhEcpxmw" },
+      { id:"shoulder_press", name:"Shoulder Press Machine", sets:3, reps:"8–10", rest:120, video:"https://www.youtube.com/watch?v=ef-hOkkRuY0" },
+      { id:"tri_pushdown", name:"Tricep Pushdown (Cable)", sets:3, reps:"12–15", rest:60,  video:"https://www.youtube.com/watch?v=odbyvJm7d8s" },
+      { id:"preacher_curl", name:"Preacher Curl Machine", sets:3, reps:"12–15", rest:60,  video:"https://www.youtube.com/watch?v=to3m8zws1n8" },
     ]
   },
   {
@@ -30,11 +31,11 @@ const DEFAULT_TEMPLATES = [
     name:"Lower A",
     subtitle:"Quads & Burn",
     exercises:[
-      { id:"smith_squat", name:"Smith Squat", sets:4, reps:"6–8", rest:150, video:"https://www.youtube.com/watch?v=AHnX-aimA4E" },
-      { id:"leg_press", name:"Leg Press", sets:3, reps:"12–15", rest:150, video:"https://www.youtube.com/watch?v=kf4_xcbfjrc" }, // :contentReference[oaicite:5]{index=5}
-      { id:"walking_lunges", name:"Walking Lunges", sets:2, reps:"20 steps", rest:90, video:"https://www.youtube.com/watch?v=vYfp2t4XgqQ" }, // :contentReference[oaicite:6]{index=6}
-      { id:"leg_ext", name:"Leg Extension", sets:3, reps:"12–15", rest:75, video:"https://www.youtube.com/watch?v=W5AZCNTFpBk" }, // :contentReference[oaicite:7]{index=7}
-      { id:"standing_calves", name:"Standing Calf Raise (Machine)", sets:3, reps:"15–20", rest:60, video:"https://www.youtube.com/watch?v=Pw0O0fIIG-g" }, // :contentReference[oaicite:8]{index=8}
+      { id:"smith_squat", name:"Smith Squat", sets:4, reps:"6–8",   rest:150, video:"https://www.youtube.com/watch?v=AHnX-aimA4E" },
+      { id:"leg_press", name:"Leg Press", sets:3, reps:"12–15",      rest:150, video:"https://www.youtube.com/watch?v=kf4_xcbfjrc" },
+      { id:"walking_lunges", name:"Walking Lunges", sets:2, reps:"20 steps", rest:90, video:"https://www.youtube.com/watch?v=vYfp2t4XgqQ" },
+      { id:"leg_ext", name:"Leg Extension", sets:3, reps:"12–15",     rest:75,  video:"https://www.youtube.com/watch?v=W5AZCNTFpBk" },
+      { id:"standing_calves", name:"Standing Calf Raise (Machine)", sets:3, reps:"15–20", rest:60, video:"https://www.youtube.com/watch?v=Pw0O0fIIG-g" },
     ]
   },
   {
@@ -42,12 +43,12 @@ const DEFAULT_TEMPLATES = [
     name:"Upper B",
     subtitle:"Back & Shoulders",
     exercises:[
-      { id:"lat_pulldown", name:"Lat Pulldown", sets:3, reps:"8–12", rest:120, video:"https://www.youtube.com/watch?v=nZip-pdLlQM" }, // :contentReference[oaicite:9]{index=9}
-      { id:"assist_pullup", name:"Assisted Pull-Up Machine", sets:3, reps:"6–10", rest:120, video:"https://www.youtube.com/watch?v=ogKeZ6vb1lo" }, // :contentReference[oaicite:10]{index=10}
-      { id:"pec_deck", name:"Pec Deck / Fly", sets:3, reps:"12–15", rest:75, video:"https://www.youtube.com/watch?v=_4JjOqy0UiY" }, // :contentReference[oaicite:11]{index=11}
-      { id:"rear_delt", name:"Rear Delt Machine", sets:3, reps:"12–15", rest:60, video:"https://www.youtube.com/watch?v=JL8nHvZcAK8" }, // :contentReference[oaicite:12]{index=12}
-      { id:"face_pull", name:"Face Pull (Cable)", sets:3, reps:"12–15", rest:60, video:"https://www.youtube.com/watch?v=ljgqer1ZpXg" }, // :contentReference[oaicite:13]{index=13}
-      { id:"hammer_curl", name:"Hammer Curl", sets:3, reps:"10–12", rest:60, video:"https://www.youtube.com/watch?v=BRVDS6HVR9Q" }, // :contentReference[oaicite:14]{index=14}
+      { id:"lat_pulldown", name:"Lat Pulldown", sets:3, reps:"8–12", rest:120, video:"https://www.youtube.com/watch?v=nZip-pdLlQM" },
+      { id:"assist_pullup", name:"Assisted Pull-Up Machine", sets:3, reps:"6–10", rest:120, video:"https://www.youtube.com/watch?v=ogKeZ6vb1lo" },
+      { id:"pec_deck", name:"Pec Deck / Fly", sets:3, reps:"12–15", rest:75,  video:"https://www.youtube.com/watch?v=_4JjOqy0UiY" },
+      { id:"rear_delt", name:"Rear Delt Machine", sets:3, reps:"12–15", rest:60,  video:"https://www.youtube.com/watch?v=JL8nHvZcAK8" },
+      { id:"face_pull", name:"Face Pull (Cable)", sets:3, reps:"12–15", rest:60,  video:"https://www.youtube.com/watch?v=ljgqer1ZpXg" },
+      { id:"hammer_curl", name:"Hammer Curl", sets:3, reps:"10–12", rest:60,  video:"https://www.youtube.com/watch?v=BRVDS6HVR9Q" },
     ]
   },
   {
@@ -55,11 +56,11 @@ const DEFAULT_TEMPLATES = [
     name:"Lower B",
     subtitle:"Hamstrings & Glutes",
     exercises:[
-      { id:"smith_rdl", name:"Smith RDL", sets:3, reps:"8–10", rest:150, video:"https://www.youtube.com/watch?v=NBR6tozmx2I" }, // :contentReference[oaicite:15]{index=15}
-      { id:"lying_curl", name:"Lying Leg Curl", sets:3, reps:"10–12", rest:90, video:"https://www.youtube.com/watch?v=sbke8rheN7Y" }, // :contentReference[oaicite:16]{index=16}
-      { id:"hip_thrust", name:"Hip Thrust / Glute Drive Machine", sets:3, reps:"8–10", rest:120, video:"https://www.youtube.com/watch?v=EAdDjw-k3ow" }, // :contentReference[oaicite:17]{index=17}
-      { id:"smith_split", name:"Smith Split Squat", sets:2, reps:"10 / leg", rest:120, video:"https://www.youtube.com/watch?v=MXrSCU4P9L4" }, // :contentReference[oaicite:18]{index=18}
-      { id:"seated_calves", name:"Seated Calf Raise", sets:3, reps:"15–20", rest:60, video:"https://www.youtube.com/watch?v=yTkZOIEAWm0" }, // :contentReference[oaicite:19]{index=19}
+      { id:"smith_rdl", name:"Smith RDL", sets:3, reps:"8–10", rest:150, video:"https://www.youtube.com/watch?v=NBR6tozmx2I" },
+      { id:"lying_curl", name:"Lying Leg Curl", sets:3, reps:"10–12", rest:90,  video:"https://www.youtube.com/watch?v=sbke8rheN7Y" },
+      { id:"hip_thrust", name:"Hip Thrust / Glute Drive Machine", sets:3, reps:"8–10", rest:120, video:"https://www.youtube.com/watch?v=EAdDjw-k3ow" },
+      { id:"smith_split", name:"Smith Split Squat", sets:2, reps:"10 / leg", rest:120, video:"https://www.youtube.com/watch?v=MXrSCU4P9L4" },
+      { id:"seated_calves", name:"Seated Calf Raise", sets:3, reps:"15–20", rest:60, video:"https://www.youtube.com/watch?v=yTkZOIEAWm0" },
     ]
   }
 ];
@@ -113,15 +114,31 @@ function saveSessions(sessions){ saveJSON(STORAGE_KEY, sessions); }
 function loadSettings(){ return loadJSON(SETTINGS_KEY, { restSeconds: 90 }); }
 function saveSettings(s){ saveJSON(SETTINGS_KEY, s); }
 
+function normalizeTemplates(tpls){
+  // Ensure every exercise has rest + video keys
+  return (tpls||[]).map(t=>({
+    id: t.id || crypto.randomUUID(),
+    name: t.name || "Template",
+    subtitle: t.subtitle || "",
+    exercises: (t.exercises||[]).map(ex=>({
+      id: ex.id || crypto.randomUUID(),
+      name: ex.name || "Exercise",
+      sets: Number(ex.sets)||0,
+      reps: ex.reps || "",
+      rest: Number(ex.rest)||0,
+      video: ex.video || ""
+    }))
+  }));
+}
+
 function loadTemplates(){
   const saved = loadJSON(TEMPLATES_KEY, null);
-  if(saved && Array.isArray(saved) && saved.length) return saved;
-  return DEFAULT_TEMPLATES;
+  if(saved && Array.isArray(saved) && saved.length) return normalizeTemplates(saved);
+  return normalizeTemplates(DEFAULT_TEMPLATES);
 }
-function saveTemplates(tpls){ saveJSON(TEMPLATES_KEY, tpls); }
+function saveTemplates(tpls){ saveJSON(TEMPLATES_KEY, normalizeTemplates(tpls)); }
 
 function loadTracker(){
-  // v2: weights[], waists[], macros[]
   return loadJSON(TRACKER_KEY, { weights: [], waists: [], macros: [] });
 }
 function saveTracker(t){ saveJSON(TRACKER_KEY, t); }
@@ -130,17 +147,9 @@ function saveTracker(t){ saveJSON(TRACKER_KEY, t); }
 function trackerToCSV(tr){
   const rows = [];
   rows.push("type,date,kg,cm,calories,protein,carbs,fat");
-
-  (tr.weights||[]).forEach(w=>{
-    rows.push(`weight,${w.date},${w.kg},,,,,`);
-  });
-  (tr.waists||[]).forEach(w=>{
-    rows.push(`waist,${w.date},,${w.cm},,,,`);
-  });
-  (tr.macros||[]).forEach(m=>{
-    rows.push(`macros,${m.date},,,${m.calories},${m.protein},${m.carbs},${m.fat}`);
-  });
-
+  (tr.weights||[]).forEach(w=> rows.push(`weight,${w.date},${w.kg},,,,,`));
+  (tr.waists||[]).forEach(w=> rows.push(`waist,${w.date},,${w.cm},,,,`));
+  (tr.macros||[]).forEach(m=> rows.push(`macros,${m.date},,,${m.calories},${m.protein},${m.carbs},${m.fat}`));
   return rows.join("\n");
 }
 
@@ -205,6 +214,50 @@ function computeStats(){
     }
   }
   return {total,last,best};
+}
+
+// ---------- Template Pack (share/import) ----------
+function makeTemplatePack(){
+  const templates = loadTemplates();
+  return {
+    app: "steady-log",
+    type: "template-pack",
+    version: 1,
+    createdAt: nowISO(),
+    templates: normalizeTemplates(templates)
+  };
+}
+async function copyToClipboard(text){
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  }catch(e){}
+  // fallback
+  try{
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position="fixed";
+    ta.style.opacity="0";
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    const ok = document.execCommand("copy");
+    ta.remove();
+    return ok;
+  }catch(e){
+    return false;
+  }
+}
+function importTemplatePackJson(raw){
+  let obj;
+  try{ obj = JSON.parse(raw); }catch(e){ throw new Error("That doesn’t look like valid JSON."); }
+  if(!obj || obj.type!=="template-pack" || obj.app!=="steady-log" || !Array.isArray(obj.templates)){
+    throw new Error("Not a Steady Log Template Pack.");
+  }
+  const cleaned = normalizeTemplates(obj.templates);
+  if(!cleaned.length) throw new Error("Template pack is empty.");
+  saveTemplates(cleaned);
 }
 
 // ---------- Rest Timer overlay ----------
@@ -318,14 +371,14 @@ function homeView(){
       <div class="hr"></div>
       <div class="grid">
         ${TEMPLATES.map(t=>`
-          <button class="btn primary" data-action="start" data-id="${t.id}">${t.name}<span class="tag">${t.subtitle||""}</span></button>
+          <button class="btn primary" data-action="start" data-id="${t.id}">${escapeHtml(t.name)}<span class="tag">${escapeHtml(t.subtitle||"")}</span></button>
         `).join("")}
       </div>
       <div class="hr"></div>
       <div class="list">
         <div class="exercise"><div class="exercise-name">${stats.total}</div><div class="exercise-meta">sessions logged</div></div>
         <div class="exercise"><div class="exercise-name">${lastText}</div><div class="exercise-meta">last session</div></div>
-        <div class="exercise"><div class="exercise-name">${SETTINGS.restSeconds}s</div><div class="exercise-meta">default rest timer</div></div>
+        <div class="exercise"><div class="exercise-name">${(Number(loadSettings().restSeconds)||90)}s</div><div class="exercise-meta">default rest timer</div></div>
       </div>
     </div>
 
@@ -344,9 +397,8 @@ function homeView(){
   document.getElementById("btnSettings").onclick = settingsView;
 }
 
-// ---------- Tracker (Weight/Waist/Macros) ----------
+// ---------- Tracker ----------
 function calcStreak(dates){
-  // dates array of YYYY-MM-DD strings
   if(!dates.length) return 0;
   const set = new Set(dates);
   let streak = 0;
@@ -405,7 +457,7 @@ function trackerView(){
       <div class="section-title">Daily Weight</div>
       <input class="input" id="wtKg" placeholder="Weight (kg)" inputmode="decimal">
       <button class="btn primary" id="saveWeight">Save Weight</button>
-      <div class="sub">Tip: log every morning, same conditions.</div>
+      <div class="sub">Log every morning, same conditions.</div>
     </div>
 
     <div class="card">
@@ -432,9 +484,7 @@ function trackerView(){
   document.getElementById("saveWeight").onclick = ()=>{
     const kg = Number(document.getElementById("wtKg").value);
     if(!kg){ alert("Enter weight"); return; }
-
     const tt = loadTracker();
-    // overwrite today if already exists
     tt.weights = (tt.weights||[]).filter(x=>x.date!==d);
     tt.weights.push({date:d, kg:kg});
     saveTracker(tt);
@@ -447,12 +497,10 @@ function trackerView(){
     const protein  = Number(document.getElementById("p").value);
     const carbs    = Number(document.getElementById("c").value);
     const fat      = Number(document.getElementById("f").value);
-
     if(!calories || !protein || !carbs || !fat){
       alert("Enter calories + P/C/F");
       return;
     }
-
     const tt = loadTracker();
     tt.macros = (tt.macros||[]).filter(x=>x.date!==d);
     tt.macros.push({date:d, calories, protein, carbs, fat});
@@ -464,7 +512,6 @@ function trackerView(){
   document.getElementById("saveWaist").onclick = ()=>{
     const cm = Number(document.getElementById("waistCm").value);
     if(!cm){ alert("Enter waist"); return; }
-
     const tt = loadTracker();
     tt.waists = (tt.waists||[]).filter(x=>x.date!==d);
     tt.waists.push({date:d, cm:cm});
@@ -526,7 +573,6 @@ function toggleDone(exIndex,setIndex){
   s.done = !s.done;
   saveDraft();
   workoutView();
-
   if(s.done){
     const secs = Number(ex.rest)||Number(loadSettings().restSeconds)||90;
     startTimer(secs);
@@ -544,12 +590,12 @@ function workoutView(){
 
   view.innerHTML = `
     <div class="card">
-      <h2>${activeWorkout.name}<span class="tag">${activeWorkout.subtitle||""}</span></h2>
+      <h2>${escapeHtml(activeWorkout.name)}<span class="tag">${escapeHtml(activeWorkout.subtitle||"")}</span></h2>
       <div class="exercise-meta">Started: ${fmtDate(activeWorkout.startedAt)} • Default Rest: ${defaultRest}s</div>
       <div class="hr"></div>
 
       <div class="section-title" style="margin-top:0;">Session Notes</div>
-      <textarea id="sessionNotes" class="input" style="min-height:64px; resize:vertical;" placeholder="Notes (optional)">${activeWorkout.notes||""}</textarea>
+      <textarea id="sessionNotes" class="input" style="min-height:64px; resize:vertical;" placeholder="Notes (optional)">${escapeHtml(activeWorkout.notes||"")}</textarea>
 
       <div class="hr"></div>
 
@@ -770,16 +816,20 @@ function exportView(){
   view.innerHTML = `
     <div class="card">
       <h2>Export</h2>
-      <div class="exercise-meta">Download backups (CSV).</div>
+      <div class="exercise-meta">Backups + share your programs.</div>
       <div class="hr"></div>
 
       <button class="btn primary" id="btnCsv">Download Workout CSV</button>
       <button class="btn" id="btnExportTracker">Download Tracker CSV</button>
 
-      <div style="height:10px"></div>
+      <div class="hr"></div>
+      <button class="btn" id="btnCopyPack">Copy Template Pack</button>
+      <button class="btn" id="btnImportPack">Import Template Pack</button>
 
+      <div class="hr"></div>
       <button class="btn danger" id="btnWipe">Wipe all data</button>
-    </div>`;
+    </div>
+  `;
 
   document.getElementById("btnCsv").onclick = ()=> downloadCSV(loadSessions());
 
@@ -788,6 +838,54 @@ function exportView(){
     const csv = trackerToCSV(t);
     downloadText(`steady-tracker-${new Date().toISOString().slice(0,10)}.csv`, csv, "text/csv");
     toast("Tracker CSV downloaded ✅");
+  };
+
+  document.getElementById("btnCopyPack").onclick = async ()=>{
+    const pack = makeTemplatePack();
+    const raw = JSON.stringify(pack, null, 2);
+    const ok = await copyToClipboard(raw);
+    toast(ok ? "Template Pack copied ✅" : "Copy failed — use Import paste ✅");
+    // If copy fails, show it so user can manually copy
+    if(!ok){
+      view.innerHTML = `
+        <div class="card">
+          <h2>Template Pack</h2>
+          <div class="exercise-meta">Copy this text and send it to your mate.</div>
+          <div class="hr"></div>
+          <textarea class="input" style="min-height:260px; font-weight:600;" id="packBox">${escapeHtml(raw)}</textarea>
+          <div class="hr"></div>
+          <button class="btn" id="backExp">Back</button>
+        </div>
+      `;
+      document.getElementById("backExp").onclick = exportView;
+    }
+  };
+
+  document.getElementById("btnImportPack").onclick = ()=>{
+    view.innerHTML = `
+      <div class="card">
+        <h2>Import Template Pack</h2>
+        <div class="exercise-meta">Paste the JSON here. This will replace your current templates.</div>
+        <div class="hr"></div>
+        <textarea class="input" style="min-height:260px; font-weight:600;" id="importBox" placeholder="{ ... }"></textarea>
+        <div class="hr"></div>
+        <button class="btn primary" id="doImport">Import</button>
+        <div style="height:10px"></div>
+        <button class="btn" id="cancelImport">Cancel</button>
+      </div>
+    `;
+    document.getElementById("cancelImport").onclick = exportView;
+    document.getElementById("doImport").onclick = ()=>{
+      const raw = document.getElementById("importBox").value.trim();
+      if(!raw){ alert("Paste the Template Pack JSON"); return; }
+      try{
+        importTemplatePackJson(raw);
+        toast("Templates imported ✅");
+        exportView();
+      }catch(err){
+        alert(err.message || "Import failed");
+      }
+    };
   };
 
   document.getElementById("btnWipe").onclick = ()=>{
