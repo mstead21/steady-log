@@ -2,21 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#00c8ff"/>
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0c0c10" />
   <title>Steady Log</title>
-  <link rel="stylesheet" href="styles.css?v=13">
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="container">
     <div class="header">
       <div class="brand">
-        <img class="logo" src="icon-192.png" alt="Steady Log">
+        <img class="logo" src="icon-192.png" alt="logo">
         <div>
           <h1>Steady Log</h1>
-          <div class="sub">Weights-only • Dark mode • Offline</div>
+          <div class="sub">Weights-only • fast PWA</div>
         </div>
       </div>
       <div class="pill" id="pillStatus">Ready</div>
@@ -26,16 +26,11 @@
   </div>
 
   <div class="footerbar">
-    <div class="wrap">
-      <button class="btn ghost" id="navHome">Home</button>
-      <button class="btn ghost" id="navHistory">History</button>
-      <button class="btn ghost" id="navExercises">Exercises</button>
-      <button class="btn ghost" id="navExport">Export</button>
-    </div>
+    <div class="wrap"></div>
   </div>
 
   <div class="toast" id="toast"></div>
 
-  <script src="app.js?v=13"></script>
+  <script src="app.js"></script>
 </body>
 </html>
