@@ -21,13 +21,13 @@ const DEFAULT_TEMPLATES = [
     name: "Upper A",
     subtitle: "Chest & Arms",
     exercises: [
-      { id:"incline_smith", name:"Smith Incline Press", sets:3, reps:"6–8" },
-      { id:"flat_plate_press", name:"Plate Loaded Chest Press (Flat)", sets:3, reps:"8–10" },
-      { id:"plate_row", name:"Chest Supported Row (Plate)", sets:3, reps:"8–12" },
-      { id:"plate_shoulder", name:"Plate Shoulder Press", sets:3, reps:"8–10" },
-      { id:"tri_pushdown", name:"Cable Tricep Pushdown", sets:3, reps:"10–15" },
-      { id:"preacher_curl", name:"Preacher Curl Machine", sets:3, reps:"10–15" }
-    ]
+  { id:"incline_smith", name:"Smith Incline Press", sets:3, reps:"6–8" },
+  { id:"plate_row", name:"Chest Supported Row (Plate)", sets:3, reps:"8–12" },
+  { id:"flat_plate_press", name:"Plate Loaded Chest Press (Flat)", sets:3, reps:"8–10" },
+  { id:"plate_shoulder", name:"Plate Shoulder Press", sets:3, reps:"8–10" },
+  { id:"tri_pushdown", name:"Cable Tricep Pushdown", sets:3, reps:"10–15" },
+  { id:"preacher_curl", name:"Preacher Curl Machine", sets:3, reps:"10–15" }
+]
   },
   {
     id: "lowerA",
