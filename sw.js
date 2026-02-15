@@ -1,32 +1,47 @@
-// Steady Log SW (v1.4) — cache-bust
-const CACHE = "steadylog-cache-v1.4";
-const ASSETS = [
+// Steady Log Service Worker (Cache-Safe Version)
+
+const CACHE_NAME = "steady-log-v3"; // <-- bump version when updating
+
+const FILES_TO_CACHE = [
   "./",
   "./index.html",
-  "./style.css",
+  "./styles.css",
   "./app.js",
-  "./manifest.webmanifest",
-  "./icon-192.png"
+  "./manifest.json"
 ];
 
-self.addEventListener("install", (e) => {
+// Install
+self.addEventListener("install", event => {
   self.skipWaiting();
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(FILES_TO_CACHE))
+  );
 });
 
-self.addEventListener("activate", (e) => {
-  e.waitUntil((async () => {
-    const keys = await caches.keys();
-    await Promise.all(keys.map(k => (k !== CACHE ? caches.delete(k) : null)));
-    await self.clients.claim();
-  })());
+// Activate (delete old caches)
+self.addEventListener("activate", event => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys.map(key => {
+          if (key !== CACHE_NAME) {
+            return caches.delete(key);
+          }
+        })
+      )
+    )
+  );
+  self.clients.claim();
 });
 
-self.addEventListener("fetch", (e) => {
-  e.respondWith((async () => {
-    const cached = await caches.match(e.request);
-    if (cached) return cached;
-    const fresh = await fetch(e.request);
-    return fresh;
-  })());
+// Fetch (network first, then cache fallback)
+self.addEventListener("fetch", event => {
+  event.respondWith(
+    fetch(event.request)
+      .then(response => {
+        return response;
+      })
+      .catch(() => caches.match(event.request))
+  );
 });
