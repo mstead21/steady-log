@@ -2,22 +2,23 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0c0c10" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Steady Log" />
-
-  <link rel="manifest" href="./manifest.json?v=20260215_01">
-  <link rel="stylesheet" href="./styles.css?v=20260215_01">
-
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Steady Log</title>
+
+  <link rel="manifest" href="./manifest.webmanifest?v=sl-p1" />
+  <link rel="icon" href="./icon-192.png" />
+  <link rel="apple-touch-icon" href="./icon-192.png" />
+
+  <link rel="stylesheet" href="./styles.css?v=sl-p1" />
 </head>
 <body>
   <div class="container">
     <div class="header">
       <div class="brand">
-        <div class="logo">SL</div>
+        <img class="logo" src="./icon-192.png" alt="SL" />
         <div>
           <h1>Steady Log</h1>
           <div class="sub">Weights-only • Dark mode • Offline</div>
@@ -29,12 +30,12 @@
     <div id="view"></div>
   </div>
 
-  <div class="toast" id="toast"></div>
+  <div class="toast" id="toast">Saved</div>
 
   <div class="footerbar">
     <div class="wrap" id="footerWrap"></div>
   </div>
 
-  <script defer src="./app.js?v=20260215_01"></script>
+  <script src="./app.js?v=sl-p1"></script>
 </body>
 </html>
