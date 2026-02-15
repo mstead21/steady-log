@@ -1,21 +1,20 @@
-/* Steady Log (V1.5) - iPhone PWA - weights-only (Dark Mode)
-   Features:
-   - Rest timer overlay + vibrate + auto-start on ✓
-   - Per-exercise rest seconds (arms 60s, compounds 120s, etc.)
-   - Suggested KG = last working set from last session for that exercise
-   - Notes: per session + per exercise
-   - PRs + recent progress
-   - Editable templates (name/sets/reps/rest/video + reorder)
-   - Tracker: daily weight + daily macros + weekly waist
-   - Streaks + trends
-   - Cut Coach prompts (based on your trend + logging)
-   - Export workout CSV + tracker CSV
+/* Steady Log — Premium V2 (2026-02-15)
+   - Dashboard tiles + sparkline
+   - Workout + weigh-in + macro streaks
+   - Trend coaching (7-day avg vs prev 7)
+   - Tracker: weight, macros, waist
+   - Macro targets in Settings
+   - Per-exercise rest seconds + smart Rest button
+   - Haptic taps (tiny tick)
+   - Template editor includes rest + video link
+   - Export: workout CSV + tracker CSV
+   - Cache-stable with sw.js versioning
 */
 
-const STORAGE_KEY   = "steadylog.sessions.v2";
-const SETTINGS_KEY  = "steadylog.settings.v2";
-const TEMPLATES_KEY = "steadylog.templates.v2";
-const TRACKER_KEY   = "steadylog.tracker.v2";
+const STORAGE_KEY   = "steadylog.sessions.v3";
+const SETTINGS_KEY  = "steadylog.settings.v3";
+const TEMPLATES_KEY = "steadylog.templates.v3";
+const TRACKER_KEY   = "steadylog.tracker.v3";
 
 /* ---------- DEFAULT TEMPLATES ---------- */
 const DEFAULT_TEMPLATES = [
@@ -25,7 +24,7 @@ const DEFAULT_TEMPLATES = [
     subtitle: "Chest & Arms",
     exercises: [
       { id:"smith_incline", name:"Smith Incline Bench Press", sets:3, reps:"6–8",  rest:120, video:"https://musclewiki.com/exercise/smith-machine-incline-bench-press" },
-      { id:"row_plate",     name:"Chest Supported Row Machine (Plate)", sets:3, reps:"8–12", rest:90,  video:"https://musclewiki.com/exercise/machine-plate-loaded-low-row" },
+      { id:"row_plate",     name:"Chest Supported Row (Plate)", sets:3, reps:"8–12", rest:90,  video:"https://musclewiki.com/exercise/machine-plate-loaded-low-row" },
       { id:"chest_press",   name:"Chest Press (Plate Loaded Flat)", sets:3, reps:"8–10", rest:90,  video:"https://musclewiki.com/exercise/machine-chest-press" },
       { id:"shoulder_press",name:"Shoulder Press Machine", sets:3, reps:"8–10", rest:90,  video:"https://musclewiki.com/exercise/machine-overhand-overhead-press" },
       { id:"tri_pushdown",  name:"Cable Tricep Pushdown", sets:3, reps:"10–15", rest:60,  video:"https://musclewiki.com/exercise/cable-tricep-pushdown" },
@@ -87,18 +86,27 @@ function toast(msg){
 function vibrate(pattern=[120,60,120]){
   try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){}
 }
+function hapticTap(){ vibrate([20]); }
+
 function loadJSON(key, fallback){
   try{ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }
   catch(e){ return fallback; }
 }
 function saveJSON(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+
 function avg(arr){ if(!arr.length) return 0; return arr.reduce((a,b)=>a+b,0)/arr.length; }
+function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
 
 /* ---------- Storage ---------- */
 function loadSessions(){ return loadJSON(STORAGE_KEY, []); }
 function saveSessions(sessions){ saveJSON(STORAGE_KEY, sessions); }
 
-function loadSettings(){ return loadJSON(SETTINGS_KEY, { restSeconds: 90 }); }
+function loadSettings(){
+  return loadJSON(SETTINGS_KEY, {
+    restSeconds: 90,
+    macroTarget: { cal:2000, p:220, c:155, f:47 }
+  });
+}
 function saveSettings(s){ saveJSON(SETTINGS_KEY, s); }
 
 function loadTemplates(){
@@ -135,7 +143,7 @@ function escapeAttr(str){
     .replaceAll('"',"&quot;");
 }
 
-/* ---------- Weight suggestions + PR stats ---------- */
+/* ---------- Suggestions + PR stats ---------- */
 function getLastSetsForExercise(exId){
   const sessions = loadSessions();
   for(let i=sessions.length-1;i>=0;i--){
@@ -172,13 +180,14 @@ function computeStats(){
   return {total,last,best};
 }
 
-/* ---------- Streaks + trend ---------- */
-function dayKey(d){ return new Date(d).toISOString().slice(0,10); }
+/* ---------- Streaks + trends ---------- */
+function uniqueDaysFromISO(list){ return Array.from(new Set(list)).sort(); }
 
 function computeWorkoutStreak(){
   const sessions = loadSessions();
-  if(!sessions.length) return 0;
-  const days = Array.from(new Set(sessions.map(s=>dayKey(s.startedAt)))).sort();
+  const days = uniqueDaysFromISO(sessions.map(s=> new Date(s.startedAt).toISOString().slice(0,10)));
+  if(!days.length) return 0;
+
   const lastDay = days[days.length-1];
   const today = todayYMD();
   const gap = Math.round((new Date(today)-new Date(lastDay))/(1000*60*60*24));
@@ -189,16 +198,15 @@ function computeWorkoutStreak(){
     const a=new Date(days[i]);
     const b=new Date(days[i-1]);
     const diff = Math.round((a-b)/(1000*60*60*24));
-    if(diff===1) streak++;
-    else break;
+    if(diff===1) streak++; else break;
   }
   return streak;
 }
 
-function computeWeighInStreak(){
-  const t=loadTracker();
-  const days=(t.weights||[]).map(w=>w.date).sort();
+function computeStreakFromDates(dates){
+  const days = uniqueDaysFromISO(dates.slice().sort());
   if(!days.length) return 0;
+
   const lastDay = days[days.length-1];
   const today = todayYMD();
   const gap = Math.round((new Date(today)-new Date(lastDay))/(1000*60*60*24));
@@ -209,8 +217,7 @@ function computeWeighInStreak(){
     const a=new Date(days[i]);
     const b=new Date(days[i-1]);
     const diff = Math.round((a-b)/(1000*60*60*24));
-    if(diff===1) streak++;
-    else break;
+    if(diff===1) streak++; else break;
   }
   return streak;
 }
@@ -218,15 +225,39 @@ function computeWeighInStreak(){
 function weightTrend(){
   const t=loadTracker();
   const ws=(t.weights||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
-  if(ws.length < 7) return { last7:0, prev7:0, delta:0, has14:false };
+  if(ws.length < 7) return { last7:0, prev7:0, delta:0, has14:false, points: ws.map(x=>Number(x.kg)||0) };
   const last7 = ws.slice(-7).map(x=>Number(x.kg)||0);
   const prev7 = ws.slice(-14,-7).map(x=>Number(x.kg)||0);
   const a = avg(last7);
   const b = prev7.length ? avg(prev7) : 0;
-  return { last7:a, prev7:b, delta: a-b, has14: ws.length>=14 };
+  return { last7:a, prev7:b, delta: a-b, has14: ws.length>=14, points: ws.slice(-21).map(x=>Number(x.kg)||0) };
 }
 
-/* ---------- Cut Coach ---------- */
+/* ---------- Sparkline SVG (no libraries) ---------- */
+function sparklineSVG(values){
+  const v = values.filter(x=>Number.isFinite(x));
+  if(v.length < 2) return "";
+  const min = Math.min(...v);
+  const max = Math.max(...v);
+  const range = (max-min) || 1;
+
+  const w=120, h=32, pad=2;
+  const pts = v.map((val,i)=>{
+    const x = pad + (i*(w-2*pad))/Math.max(1,(v.length-1));
+    const y = pad + (h-2*pad) * (1 - ((val-min)/range));
+    return [x,y];
+  });
+
+  const d = pts.map((p,i)=> `${i===0?"M":"L"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
+  return `
+    <svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+      <path d="${d}" fill="none" stroke="rgba(0,200,255,.9)" stroke-width="2" />
+      <path d="${d} L ${w-pad},${h-pad} L ${pad},${h-pad} Z" fill="rgba(0,200,255,.08)"/>
+    </svg>
+  `;
+}
+
+/* ---------- Coach prompts ---------- */
 function daysSince(dateYMD){
   if(!dateYMD) return 9999;
   const a = new Date(dateYMD+"T00:00:00Z");
@@ -236,7 +267,6 @@ function daysSince(dateYMD){
 
 function getCutCoachTips(){
   const tips = [];
-
   const t = loadTracker();
   const weights = (t.weights||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
   const macros  = (t.macros||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
@@ -247,27 +277,22 @@ function getCutCoachTips(){
   const macrosToday  = macros.some(m=>m.date===today);
 
   if(!weighedToday) tips.push("📌 Weigh in today (AM, after toilet, before food).");
-  if(!macrosToday)  tips.push("📌 Log calories/macros today (even rough is better than nothing).");
+  if(!macrosToday)  tips.push("📌 Log macros today (even rough beats nothing).");
 
   const lastWaist = waists.length ? waists[waists.length-1].date : null;
   if(daysSince(lastWaist) >= 7) tips.push("📏 Waist due (once per week).");
 
+  const tr = weightTrend();
   if(weights.length >= 14){
-    const last7 = weights.slice(-7).map(x=>Number(x.kg)||0);
-    const prev7 = weights.slice(-14,-7).map(x=>Number(x.kg)||0);
-    const last7Avg = avg(last7);
-    const prev7Avg = avg(prev7);
-    const deltaAvg = last7Avg - prev7Avg; // negative = dropping
-    const weeklyLoss = -deltaAvg;
-
+    const weeklyLoss = -(tr.delta); // kg per week approx from avg shift
     if(weeklyLoss < 0.15){
-      tips.push("🧠 Trend is stalling. Pick ONE: -150 kcal/day OR +2–3k steps/day for 7 days.");
-      tips.push("✅ Check: weekend calories, sauces/oils, liquid calories, portion creep.");
+      tips.push("🧠 Trend stalling. Pick ONE for 7 days: -150 kcal/day OR +2–3k steps/day.");
+      tips.push("✅ Check: weekends, oils/sauces, liquid calories, portion creep.");
     } else if(weeklyLoss > 1.5){
       tips.push("⚠️ Dropping very fast. Consider +100–200 kcal/day or keep a planned refeed day.");
-      tips.push("✅ Aim: keep strength up + recover (especially with high steps).");
+      tips.push("✅ Keep strength up (recovery matters with high steps).");
     } else {
-      tips.push("🔥 Trend looks on track. Keep steady — hit steps + protein + progressive overload.");
+      tips.push("🔥 Trend on track. Keep steady: steps + protein + progressive overload.");
     }
   } else {
     tips.push("📈 Get 14 weigh-ins logged and I’ll coach your trend properly.");
@@ -303,13 +328,13 @@ function startTimer(seconds){
     <div style="width:min(420px,92vw); background:rgba(20,20,27,.92); border:1px solid rgba(255,255,255,.14); border-radius:20px; padding:18px; box-shadow: 0 20px 60px rgba(0,0,0,.45);">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
         <div>
-          <div style="font-weight:900; font-size:14px;">Rest Timer</div>
+          <div style="font-weight:950; font-size:14px;">Rest Timer</div>
           <div style="color:rgba(233,233,242,.75); font-size:12px; margin-top:4px;">Vibrates when finished</div>
         </div>
         <button id="timerStop" class="btn danger" style="width:auto; padding:10px 12px;">Stop</button>
       </div>
       <div style="height:12px"></div>
-      <div id="timerClock" style="font-size:54px; font-weight:900; text-align:center;">--</div>
+      <div id="timerClock" style="font-size:54px; font-weight:950; text-align:center;">--</div>
       <div style="height:10px"></div>
       <div style="display:flex; gap:10px;">
         <button class="btn" style="flex:1" data-tquick="60">+60s</button>
@@ -344,6 +369,7 @@ function startTimer(seconds){
 /* ---------- Views ---------- */
 const view = document.getElementById("view");
 let activeWorkout=null;
+let lastRestSeconds=null;
 
 function resetFooterNav(){
   const wrap = document.querySelector(".footerbar .wrap");
@@ -354,11 +380,11 @@ function resetFooterNav(){
     <button class="btn ghost" id="navTracker">Tracker</button>
     <button class="btn ghost" id="navExport">Export</button>
   `;
-  document.getElementById("navHome").onclick = ()=>{ stopTimer(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); homeView(); resetFooterNav(); };
-  document.getElementById("navHistory").onclick = ()=>{ stopTimer(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); historyView(); resetFooterNav(); };
-  document.getElementById("navExercises").onclick = ()=>{ stopTimer(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); exercisesView(); resetFooterNav(); };
-  document.getElementById("navTracker").onclick = ()=>{ stopTimer(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); trackerView(); resetFooterNav(); };
-  document.getElementById("navExport").onclick = ()=>{ stopTimer(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); exportView(); resetFooterNav(); };
+  document.getElementById("navHome").onclick = ()=>{ stopTimer(); hapticTap(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); homeView(); resetFooterNav(); };
+  document.getElementById("navHistory").onclick = ()=>{ stopTimer(); hapticTap(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); historyView(); resetFooterNav(); };
+  document.getElementById("navExercises").onclick = ()=>{ stopTimer(); hapticTap(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); exercisesView(); resetFooterNav(); };
+  document.getElementById("navTracker").onclick = ()=>{ stopTimer(); hapticTap(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); trackerView(); resetFooterNav(); };
+  document.getElementById("navExport").onclick = ()=>{ stopTimer(); hapticTap(); activeWorkout=null; sessionStorage.removeItem("steadylog.draft"); exportView(); resetFooterNav(); };
 }
 
 function setFooterActions(actions){
@@ -378,15 +404,61 @@ function homeView(){
   const stats = computeStats();
   const lastText = stats.last ? fmtDate(stats.last) : "—";
 
-  const ws = computeWorkoutStreak();
-  const wts = computeWeighInStreak();
   const tr = weightTrend();
-  const trendText = tr.last7 ? `${tr.last7.toFixed(1)} kg (7d avg) • ${(tr.delta>0?"+":"")}${tr.delta.toFixed(1)} vs prev` : "—";
+  const t = loadTracker();
+  const wtStreak = computeStreakFromDates((t.weights||[]).map(x=>x.date));
+  const mStreak  = computeStreakFromDates((t.macros||[]).map(x=>x.date));
+  const wStreak  = computeWorkoutStreak();
+
+  const delta = tr.has14 ? tr.delta : 0;
+  const arrow = tr.has14 ? (delta < 0 ? "⬇️" : delta > 0 ? "⬆️" : "➡️") : "—";
+  const trendText = tr.last7 ? `${tr.last7.toFixed(1)} kg` : "—";
+  const deltaText = tr.has14 ? `${arrow} ${(delta>0?"+":"")}${delta.toFixed(1)} vs prev` : "Need 14";
+
+  const todaysMacro = (t.macros||[]).find(x=>x.date===todayYMD());
+  const mt = SETTINGS.macroTarget || {cal:2000,p:220,c:155,f:47};
+  const macroKPI = todaysMacro ? `${todaysMacro.cal} kcal` : "—";
+  const macroLbl = todaysMacro ? `P${todaysMacro.p} C${todaysMacro.c} F${todaysMacro.f}` : "Log today";
 
   view.innerHTML = `
     <div class="card">
-      <h2>Start Workout</h2>
+      <h2>Dashboard</h2>
+      <div class="sub">${lastText === "—" ? "First session starts here." : `Last session: ${lastText}`}</div>
       <div class="hr"></div>
+
+      <div class="tiles">
+        <div class="tile">
+          <div class="kpi">${stats.total}</div>
+          <div class="lbl">Sessions logged</div>
+        </div>
+        <div class="tile">
+          <div class="kpi">${wStreak} 🔥</div>
+          <div class="lbl">Workout streak</div>
+        </div>
+        <div class="tile">
+          <div class="kpi">${wtStreak} ✅</div>
+          <div class="lbl">Weigh-in streak</div>
+        </div>
+        <div class="tile">
+          <div class="kpi">${mStreak} 🥗</div>
+          <div class="lbl">Macro streak</div>
+        </div>
+
+        <div class="tile" style="grid-column:span 2;">
+          <div class="kpi">${trendText}</div>
+          <div class="lbl">7-day avg • ${deltaText}</div>
+          ${sparklineSVG(tr.points)}
+        </div>
+
+        <div class="tile" style="grid-column:span 2;">
+          <div class="kpi">${macroKPI}</div>
+          <div class="lbl">Today • ${macroLbl} • Target ${mt.cal} kcal</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">Start Workout</div>
+    <div class="card">
       <div class="grid">
         ${TEMPLATES.map(t=>`
           <button class="btn primary" data-action="start" data-id="${t.id}">
@@ -394,40 +466,30 @@ function homeView(){
           </button>
         `).join("")}
       </div>
-
       <div class="hr"></div>
-      <div class="list">
-        <div class="exercise"><div class="exercise-name">${stats.total}</div><div class="exercise-meta">sessions logged</div></div>
-        <div class="exercise"><div class="exercise-name">${lastText}</div><div class="exercise-meta">last session</div></div>
-        <div class="exercise"><div class="exercise-name">${ws} 🔥</div><div class="exercise-meta">workout streak</div></div>
-        <div class="exercise"><div class="exercise-name">${wts} ✅</div><div class="exercise-meta">weigh-in streak</div></div>
-        <div class="exercise"><div class="exercise-name">${trendText}</div><div class="exercise-meta">weight trend</div></div>
-        <div class="exercise"><div class="exercise-name">${SETTINGS.restSeconds}s</div><div class="exercise-meta">default rest timer</div></div>
-      </div>
+      <button class="btn" id="btnTemplateEditor">Edit Templates</button>
+      <div style="height:10px"></div>
+      <button class="btn" id="btnSettings">Settings</button>
     </div>
 
     <div class="section-title">Cut Coach</div>
     <div class="card">
-      <div class="exercise-meta">Based on your weigh-ins + logs.</div>
+      <div class="sub">Based on your trend + logging.</div>
       <div class="hr"></div>
       <div class="list">
         ${getCutCoachTips().map(t=>`<div class="exercise"><div class="exercise-meta">${t}</div></div>`).join("")}
       </div>
     </div>
-
-    <div class="section-title">Tools</div>
-    <div class="card">
-      <button class="btn" id="btnTemplateEditor">Edit Templates</button>
-      <div style="height:10px"></div>
-      <button class="btn" id="btnSettings">Default Timer Settings</button>
-    </div>
   `;
 
   view.querySelectorAll('[data-action="start"]').forEach(btn=>{
-    btn.onclick = ()=> startWorkout(btn.dataset.id);
+    btn.onclick = ()=>{
+      hapticTap();
+      startWorkout(btn.dataset.id);
+    };
   });
-  document.getElementById("btnTemplateEditor").onclick = templatesView;
-  document.getElementById("btnSettings").onclick = settingsView;
+  document.getElementById("btnTemplateEditor").onclick = ()=>{ hapticTap(); templatesView(); };
+  document.getElementById("btnSettings").onclick = ()=>{ hapticTap(); settingsView(); };
 }
 
 /* ---------- Tracker ---------- */
@@ -435,6 +497,7 @@ function trackerView(){
   setPill("Tracker");
   const t = loadTracker();
   const d = todayYMD();
+  const mt = loadSettings().macroTarget || {cal:2000,p:220,c:155,f:47};
 
   const weightsSorted = (t.weights||[]).slice().sort((a,b)=> a.date.localeCompare(b.date));
   const last7 = weightsSorted.slice(-7);
@@ -450,12 +513,14 @@ function trackerView(){
     <div class="card">
       <div class="section-title">Daily Weight</div>
       <input class="input" id="wtKg" placeholder="Weight (kg)">
-      <button class="btn primary" id="saveWeight">Save Weight</button>
+      <button class="btn primary" id="saveWeight" style="margin-top:10px;">Save Weight</button>
       <div class="sub">Last 7 day avg: <b>${last7Avg ? last7Avg.toFixed(1) : "—"}</b></div>
     </div>
 
-    <div class="card">
+    <div class="card" style="margin-top:12px;">
       <div class="section-title">Daily Macros</div>
+      <div class="sub">Target: <b>${mt.cal} kcal • P${mt.p} C${mt.c} F${mt.f}</b></div>
+      <div style="height:10px"></div>
       <input class="input" id="cal" placeholder="Calories (kcal)">
       <div style="height:8px"></div>
       <input class="input" id="p" placeholder="Protein (g)">
@@ -467,15 +532,16 @@ function trackerView(){
       <div class="sub">Last saved: <b>${lastMacro ? `${lastMacro.cal} kcal • P${lastMacro.p} C${lastMacro.c} F${lastMacro.f}` : "—"}</b></div>
     </div>
 
-    <div class="card">
+    <div class="card" style="margin-top:12px;">
       <div class="section-title">Weekly Waist</div>
       <input class="input" id="waistCm" placeholder="Waist (cm)">
-      <button class="btn primary" id="saveWaist">Save Waist</button>
+      <button class="btn primary" id="saveWaist" style="margin-top:10px;">Save Waist</button>
       <div class="sub">Last saved: <b>${lastWaist ? lastWaist.cm + " cm" : "—"}</b></div>
     </div>
   `;
 
   document.getElementById("saveWeight").onclick = ()=>{
+    hapticTap();
     const kg = Number(document.getElementById("wtKg").value);
     if(!kg){ alert("Enter weight"); return; }
     const tt = loadTracker();
@@ -486,6 +552,7 @@ function trackerView(){
   };
 
   document.getElementById("saveMacros").onclick = ()=>{
+    hapticTap();
     const cal = Number(document.getElementById("cal").value);
     const p   = Number(document.getElementById("p").value);
     const c   = Number(document.getElementById("c").value);
@@ -499,6 +566,7 @@ function trackerView(){
   };
 
   document.getElementById("saveWaist").onclick = ()=>{
+    hapticTap();
     const cm = Number(document.getElementById("waistCm").value);
     if(!cm){ alert("Enter waist"); return; }
     const tt = loadTracker();
@@ -533,6 +601,7 @@ function startWorkout(templateId){
       sets: []
     }))
   };
+  lastRestSeconds = null;
   saveDraft();
   workoutView();
   toast(`${tpl.name} started`);
@@ -563,6 +632,7 @@ function toggleDone(exIndex,setIndex){
   if(s.done){
     const ex = activeWorkout.exercises[exIndex];
     const secs = Number(ex.rest)||Number(loadSettings().restSeconds)||90;
+    lastRestSeconds = secs;
     startTimer(secs);
   }
 }
@@ -600,13 +670,14 @@ function workoutView(){
                   <div class="exercise-name">${ex.name}</div>
                   <div class="exercise-meta">🎯 ${ex.targetSets} sets • ${ex.targetReps} • Rest: ${rest}s • Last: ${lastStr}</div>
                 </div>
-                <div style="display:flex; gap:8px; align-items:flex-start;">
-                  ${ex.video ? `<button class="btn" style="width:auto;padding:10px 12px" data-video="${idx}">▶ Video</button>` : ``}
-                  <button class="btn" style="width:auto;padding:10px 12px" data-add="${idx}">+ Set</button>
+                <div style="display:flex; gap:8px; align-items:flex-start; flex-wrap:wrap;">
+                  ${ex.video ? `<button class="btn small" data-video="${idx}">▶ Video</button>` : ``}
+                  <button class="btn small" data-restex="${idx}">⏱ Rest</button>
+                  <button class="btn small primary" data-add="${idx}">+ Set</button>
                 </div>
               </div>
 
-              <div style="display:flex; gap:8px; align-items:center; margin-top:8px">
+              <div style="display:flex; gap:8px; align-items:center; margin-top:10px">
                 <span class="tag">Note</span>
                 <input class="input" style="padding:10px" value="${escapeAttr(ex.note||"")}" placeholder="e.g. slow tempo / drop set" data-exnote="${idx}">
               </div>
@@ -626,11 +697,26 @@ function workoutView(){
   `;
 
   document.getElementById("sessionNotes").oninput = (e)=> updateSessionNotes(e.target.value);
-  view.querySelectorAll("[data-add]").forEach(b=> b.onclick = ()=> addSet(Number(b.dataset.add)));
+
+  view.querySelectorAll("[data-add]").forEach(b=> b.onclick = ()=>{
+    hapticTap();
+    addSet(Number(b.dataset.add));
+  });
+
   view.querySelectorAll("[data-video]").forEach(b=> b.onclick = ()=>{
+    hapticTap();
     const ex = activeWorkout.exercises[Number(b.dataset.video)];
     window.open(ex.video, "_blank");
   });
+
+  view.querySelectorAll("[data-restex]").forEach(b=> b.onclick = ()=>{
+    hapticTap();
+    const ex = activeWorkout.exercises[Number(b.dataset.restex)];
+    const secs = Number(ex.rest)||SETTINGS.restSeconds;
+    lastRestSeconds = secs;
+    startTimer(secs);
+  });
+
   view.querySelectorAll("[data-exnote]").forEach(inp=> inp.oninput = (e)=> updateExerciseNote(Number(inp.dataset.exnote), e.target.value));
   view.querySelectorAll("[data-kg]").forEach(inp=> inp.oninput = (e)=>{
     const [i,j]=inp.dataset.kg.split(":").map(Number); updateSet(i,j,"kg", e.target.value);
@@ -639,16 +725,20 @@ function workoutView(){
     const [i,j]=inp.dataset.reps.split(":").map(Number); updateSet(i,j,"reps", e.target.value);
   });
   view.querySelectorAll("[data-done]").forEach(btn=> btn.onclick = ()=>{
+    hapticTap();
     const [i,j]=btn.dataset.done.split(":").map(Number); toggleDone(i,j);
   });
   view.querySelectorAll("[data-del]").forEach(btn=> btn.onclick = ()=>{
+    hapticTap();
     const [i,j]=btn.dataset.del.split(":").map(Number); deleteSet(i,j);
   });
 
+  const restLabel = lastRestSeconds ? `Rest ${lastRestSeconds}s` : `Rest ${SETTINGS.restSeconds}s`;
+
   setFooterActions([
-    {label:"Finish & Save", cls:"primary", onClick: finishWorkout},
-    {label:"Rest", cls:"ghost", onClick: ()=> startTimer(Number(SETTINGS.restSeconds)||90)},
-    {label:"Cancel", cls:"danger", onClick: cancelWorkout},
+    {label:"Finish & Save", cls:"primary", onClick: ()=>{ hapticTap(); finishWorkout(); }},
+    {label:restLabel, cls:"ghost", onClick: ()=>{ hapticTap(); startTimer(Number(lastRestSeconds||SETTINGS.restSeconds)||90); }},
+    {label:"Cancel", cls:"danger", onClick: ()=>{ hapticTap(); cancelWorkout(); }},
   ]);
 }
 
@@ -693,7 +783,7 @@ function historyView(){
       </div>
     </div>
   `;
-  view.querySelectorAll("[data-open]").forEach(b=> b.onclick = ()=> sessionDetailView(b.dataset.open));
+  view.querySelectorAll("[data-open]").forEach(b=> b.onclick = ()=>{ hapticTap(); sessionDetailView(b.dataset.open); });
 }
 
 function sessionDetailView(id){
@@ -722,8 +812,9 @@ function sessionDetailView(id){
       <div style="height:10px"></div>
       <button class="btn" id="backHist">Back</button>
     </div>`;
-  document.getElementById("backHist").onclick = historyView;
+  document.getElementById("backHist").onclick = ()=>{ hapticTap(); historyView(); };
   document.getElementById("delSes").onclick = ()=>{
+    hapticTap();
     if(confirm("Delete this session permanently?")){
       saveSessions(sessions.filter(x=>x.id!==id));
       toast("Deleted");
@@ -755,8 +846,8 @@ function exercisesView(){
       <div class="hr"></div>
       <button class="btn" id="editTplFromEx">Edit Templates</button>
     </div>`;
-  view.querySelectorAll("[data-ex]").forEach(b=> b.onclick = ()=> exerciseDetailView(b.dataset.ex));
-  document.getElementById("editTplFromEx").onclick = templatesView;
+  view.querySelectorAll("[data-ex]").forEach(b=> b.onclick = ()=>{ hapticTap(); exerciseDetailView(b.dataset.ex); });
+  document.getElementById("editTplFromEx").onclick = ()=>{ hapticTap(); templatesView(); };
 }
 
 function exerciseDetailView(exId){
@@ -794,7 +885,7 @@ function exerciseDetailView(exId){
       <div class="hr"></div>
       <button class="btn" id="backEx">Back</button>
     </div>`;
-  document.getElementById("backEx").onclick = exercisesView;
+  document.getElementById("backEx").onclick = ()=>{ hapticTap(); exercisesView(); };
 }
 
 /* ---------- Export ---------- */
@@ -814,7 +905,19 @@ function downloadText(filename, text, mime){
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
-
+function downloadCSV(sessions){
+  const rows=[["date","workout","exercise","set_index","kg","reps","session_notes","exercise_note"]];
+  for(const ses of sessions){
+    for(const ex of ses.exercises){
+      (ex.sets||[]).forEach((st,idx)=>{
+        rows.push([ses.startedAt,ses.name,ex.name,String(idx+1),String(st.kg),String(st.reps),ses.notes||"",ex.note||""]);
+      });
+    }
+  }
+  const csv = rows.map(r=> r.map(v=> `"${String(v).replaceAll('"','""')}"`).join(",")).join("\n");
+  downloadText(`steady-log-${new Date().toISOString().slice(0,10)}.csv`, csv, "text/csv");
+  toast("Workout CSV downloaded ✅");
+}
 function exportView(){
   setPill("Export");
   view.innerHTML = `
@@ -831,9 +934,9 @@ function exportView(){
       <button class="btn danger" id="btnWipe">Wipe all data</button>
     </div>`;
 
-  document.getElementById("btnCsv").onclick = ()=> downloadCSV(loadSessions());
-
+  document.getElementById("btnCsv").onclick = ()=>{ hapticTap(); downloadCSV(loadSessions()); };
   document.getElementById("btnExportTracker").onclick = ()=>{
+    hapticTap();
     const t = loadTracker();
     const csv = trackerToCSV(t);
     downloadText(`steady-tracker-${new Date().toISOString().slice(0,10)}.csv`, csv, "text/csv");
@@ -841,6 +944,7 @@ function exportView(){
   };
 
   document.getElementById("btnWipe").onclick = ()=>{
+    hapticTap();
     if(confirm("Wipe ALL Steady Log data from this phone?")){
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem(SETTINGS_KEY);
@@ -853,45 +957,64 @@ function exportView(){
   };
 }
 
-function downloadCSV(sessions){
-  const rows=[["date","workout","exercise","set_index","kg","reps","session_notes","exercise_note"]];
-  for(const ses of sessions){
-    for(const ex of ses.exercises){
-      (ex.sets||[]).forEach((st,idx)=>{
-        rows.push([ses.startedAt,ses.name,ex.name,String(idx+1),String(st.kg),String(st.reps),ses.notes||"",ex.note||""]);
-      });
-    }
-  }
-  const csv = rows.map(r=> r.map(v=> `"${String(v).replaceAll('"','""')}"`).join(",")).join("\n");
-  downloadText(`steady-log-${new Date().toISOString().slice(0,10)}.csv`, csv, "text/csv");
-  toast("Workout CSV downloaded ✅");
-}
-
 /* ---------- Settings ---------- */
 function settingsView(){
   SETTINGS=loadSettings();
   setPill("Settings");
+
+  const mt = SETTINGS.macroTarget || {cal:2000,p:220,c:155,f:47};
+
   view.innerHTML = `
     <div class="card">
-      <h2>Default Timer Settings</h2>
-      <div class="exercise-meta">Used when an exercise has no rest set.</div>
+      <h2>Settings</h2>
       <div class="hr"></div>
+
+      <div class="section-title" style="margin-top:0;">Default Rest Timer</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
         ${[60,90,120].map(s=>`<button class="btn ${SETTINGS.restSeconds===s?"primary":"ghost"}" style="width:auto" data-s="${s}">${s}s</button>`).join("")}
       </div>
+
+      <div class="hr"></div>
+
+      <div class="section-title" style="margin-top:0;">Macro Targets</div>
+      <input class="input" id="tcal" placeholder="Target Calories" value="${mt.cal}">
+      <div style="height:8px"></div>
+      <input class="input" id="tp" placeholder="Target Protein (g)" value="${mt.p}">
+      <div style="height:8px"></div>
+      <input class="input" id="tc" placeholder="Target Carbs (g)" value="${mt.c}">
+      <div style="height:8px"></div>
+      <input class="input" id="tf" placeholder="Target Fat (g)" value="${mt.f}">
+      <button class="btn primary" id="saveTargets" style="margin-top:10px;">Save Targets</button>
+
       <div class="hr"></div>
       <button class="btn" id="backHome">Back</button>
     </div>`;
+
   view.querySelectorAll("[data-s]").forEach(b=> b.onclick = ()=>{
+    hapticTap();
     SETTINGS.restSeconds = Number(b.dataset.s);
     saveSettings(SETTINGS);
     toast(`Default rest set to ${SETTINGS.restSeconds}s`);
     settingsView();
   });
-  document.getElementById("backHome").onclick = homeView;
+
+  document.getElementById("saveTargets").onclick = ()=>{
+    hapticTap();
+    const cal = Number(document.getElementById("tcal").value);
+    const p   = Number(document.getElementById("tp").value);
+    const c   = Number(document.getElementById("tc").value);
+    const f   = Number(document.getElementById("tf").value);
+    if(!cal || !p){ alert("Enter at least Calories + Protein"); return; }
+    SETTINGS.macroTarget = {cal, p, c:c||0, f:f||0};
+    saveSettings(SETTINGS);
+    toast("Targets saved ✅");
+    settingsView();
+  };
+
+  document.getElementById("backHome").onclick = ()=>{ hapticTap(); homeView(); };
 }
 
-/* ---------- Template editor (Rest + Video included) ---------- */
+/* ---------- Template editor ---------- */
 function templatesView(){
   TEMPLATES = loadTemplates();
   setPill("Templates");
@@ -907,9 +1030,10 @@ function templatesView(){
       <div style="height:10px"></div>
       <button class="btn" id="backTplHome">Back</button>
     </div>`;
-  view.querySelectorAll("[data-tpl]").forEach(b=> b.onclick = ()=> templateEditView(b.dataset.tpl));
-  document.getElementById("backTplHome").onclick = homeView;
+  view.querySelectorAll("[data-tpl]").forEach(b=> b.onclick = ()=>{ hapticTap(); templateEditView(b.dataset.tpl); });
+  document.getElementById("backTplHome").onclick = ()=>{ hapticTap(); homeView(); };
   document.getElementById("resetTpl").onclick = ()=>{
+    hapticTap();
     if(confirm("Reset templates to default?")){
       saveTemplates(DEFAULT_TEMPLATES);
       toast("Templates reset ✅");
@@ -924,10 +1048,11 @@ function templateEditView(tplId){
   if(idx<0){ templatesView(); return; }
   const tpl = TEMPLATES[idx];
   setPill("Edit");
+
   view.innerHTML = `
     <div class="card">
       <h2>${tpl.name}<span class="tag">${tpl.subtitle||""}</span></h2>
-      <div class="exercise-meta">Edit name, sets, reps, rest, and video link.</div>
+      <div class="sub">Edit name, sets, reps, rest and video link.</div>
       <div class="hr"></div>
       <div class="list">
         ${(tpl.exercises||[]).map((ex,i)=>`
@@ -953,7 +1078,7 @@ function templateEditView(tplId){
           </div>`).join("")}
       </div>
       <div class="hr"></div>
-      <div style="display:flex;gap:10px">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
         <button class="btn primary" id="addEx">+ Add Exercise</button>
         <button class="btn" id="saveTplBtn">Save</button>
       </div>
@@ -972,6 +1097,7 @@ function templateEditView(tplId){
 
   view.querySelectorAll("[data-move]").forEach(btn=>{
     btn.onclick = ()=>{
+      hapticTap();
       const i=Number(btn.dataset.i);
       const j = btn.dataset.move==="up" ? i-1 : i+1;
       if(j<0 || j>=tpl.exercises.length) return;
@@ -983,6 +1109,7 @@ function templateEditView(tplId){
 
   view.querySelectorAll("[data-del]").forEach(btn=>{
     btn.onclick = ()=>{
+      hapticTap();
       const i=Number(btn.dataset.del);
       if(confirm("Delete this exercise?")){
         tpl.exercises.splice(i,1);
@@ -993,15 +1120,17 @@ function templateEditView(tplId){
   });
 
   document.getElementById("addEx").onclick = ()=>{
+    hapticTap();
     tpl.exercises.push({id:crypto.randomUUID(), name:"New Exercise", sets:3, reps:"10–12", rest:90, video:""});
     TEMPLATES[idx]=tpl; saveTemplates(TEMPLATES);
     templateEditView(tplId);
   };
   document.getElementById("saveTplBtn").onclick = ()=>{
+    hapticTap();
     TEMPLATES[idx]=tpl; saveTemplates(TEMPLATES);
     toast("Template saved ✅");
   };
-  document.getElementById("backTpls").onclick = templatesView;
+  document.getElementById("backTpls").onclick = ()=>{ hapticTap(); templatesView(); };
 }
 
 /* ---------- Boot ---------- */
