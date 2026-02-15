@@ -197,12 +197,13 @@ const videoClose = document.getElementById("videoClose");
 const videoOpenNew = document.getElementById("videoOpenNew");
 const videoTitle = document.getElementById("videoTitle");
 
-function youtubeSearchUrl(q){ return "https://www.youtube.com/results?search_query=" + encodeURIComponent(q); }
+function youtubeWebSearchUrl(q){ return "https://www.youtube.com/results?search_query=" + encodeURIComponent(q); }
+function youtubeEmbedSearchUrl(q){ return "https://www.youtube.com/embed?listType=search&list=" + encodeURIComponent(q) + "&rel=0&modestbranding=1&playsinline=1"; }
 function openVideo(searchText, titleText){
   currentSearch = (searchText||"").trim();
   if(!currentSearch){ toast("No video set"); return; }
   videoTitle.textContent = titleText ? ("Video • " + titleText) : "Video";
-  videoFrame.src = youtubeSearchUrl(currentSearch);
+  videoFrame.src = youtubeEmbedSearchUrl(currentSearch);
   videoModal.classList.add("show");
   videoModal.setAttribute("aria-hidden","false");
 }
@@ -212,7 +213,7 @@ function closeVideo(){
   videoModal.setAttribute("aria-hidden","true");
 }
 videoClose.onclick = closeVideo;
-videoOpenNew.onclick = ()=>{ if(currentSearch) window.open(youtubeSearchUrl(currentSearch), "_blank"); };
+videoOpenNew.onclick = ()=>{ if(currentSearch) window.open(youtubeWebSearchUrl(currentSearch), "_blank"); };
 videoModal.addEventListener("click",(e)=>{ if(e.target===videoModal) closeVideo(); });
 
 /* Rest timer overlay */
