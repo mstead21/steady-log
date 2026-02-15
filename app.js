@@ -785,7 +785,35 @@ function templatesView(){
   view.querySelectorAll("[data-tpl]").forEach(b=> b.onclick = ()=> templateEditView(b.dataset.tpl));
   document.getElementById("backTplHome").onclick = homeView;
   document.getElementById("resetTpl").onclick = ()=>{
-    if(confirm("Reset templates to default?")){
+document.getElementById("exportTpl").onclick = ()=>{
+  const data = JSON.stringify(loadTemplates(), null, 2);
+  downloadText("steady-templates.json", data, "application/json");
+  toast("Templates exported ✅");
+};
+
+document.getElementById("importTpl").onclick = ()=>{
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "application/json";
+  input.onchange = (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      try{
+        const parsed = JSON.parse(reader.result);
+        saveTemplates(parsed);
+        toast("Templates imported ✅");
+        templatesView();
+      }catch(err){
+        alert("Invalid file");
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+};
+     if(confirm("Reset templates to default?")){
       saveTemplates(DEFAULT_TEMPLATES);
       toast("Templates reset");
       templatesView();
