@@ -1,36 +1,38 @@
-// Simple offline cache
-const CACHE = "steady-log-premium-2026-02-15";
+const CACHE = "steady-log-PREMIUM_LOCKED_A_2026_02_15";
 const ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=2026-02-15-premium",
-  "./app.js?v=2026-02-15-premium",
+  "./styles.css",
+  "./app.js",
   "./manifest.json",
-  "./icons/icon-192.png",
-  "./icons/icon-512.png",
-  "./icons/apple-touch-icon.png"
+  "./icon-192.png",
+  "./icon-512.png"
 ];
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(
-    caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(()=>self.skipWaiting())
-  );
+  e.waitUntil((async () => {
+    const cache = await caches.open(CACHE);
+    await cache.addAll(ASSETS);
+    self.skipWaiting();
+  })());
 });
 
 self.addEventListener("activate", (e) => {
-  e.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.map(k => k!==CACHE ? caches.delete(k) : null)))
-      .then(()=>self.clients.claim())
-  );
+  e.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => (k !== CACHE ? caches.delete(k) : null)));
+    self.clients.claim();
+  })());
 });
 
 self.addEventListener("fetch", (e) => {
-  const req = e.request;
-  e.respondWith(
-    caches.match(req).then(cached => cached || fetch(req).then(res=>{
-      const copy = res.clone();
-      caches.open(CACHE).then(cache=>cache.put(req, copy)).catch(()=>{});
-      return res;
-    }).catch(()=>cached))
-  );
+  e.respondWith((async () => {
+    const cached = await caches.match(e.request, { ignoreSearch: true });
+    if (cached) return cached;
+    try {
+      return await fetch(e.request);
+    } catch (err) {
+      return cached || new Response("Offline", { status: 200 });
+    }
+  })());
 });
