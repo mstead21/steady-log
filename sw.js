@@ -1,7 +1,4 @@
-// FIX: make updates actually load (don’t ignore query strings)
-// + network-first for HTML navigations so UI always updates
-
-const CACHE = "steady-log-2026-02-16-fix2";
+const CACHE = "steady-log-FIX3";
 const ASSETS = [
   "./",
   "./index.html",
@@ -31,7 +28,7 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   const req = e.request;
 
-  // Network-first for page loads (so "everything" appears with latest JS)
+  // Network-first for navigations (keeps app from getting "stuck" blank)
   if (req.mode === "navigate") {
     e.respondWith((async () => {
       try {
@@ -46,9 +43,9 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
-  // Cache-first for assets, but IMPORTANT: do NOT ignore query strings
+  // Cache-first for assets (IMPORTANT: do NOT ignore query strings)
   e.respondWith((async () => {
-    const cached = await caches.match(req); // <-- NO ignoreSearch
+    const cached = await caches.match(req);
     if (cached) return cached;
 
     try {

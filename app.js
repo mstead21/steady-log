@@ -10,7 +10,7 @@
    - Macros: daily logging + targets + progress bars + streak
    - Exports: workouts CSV + tracker CSV + macros CSV
 */
-const BUILD_TAG = "PREMIUM_LOCKED_A_2026_02_16_FIX1";
+const BUILD_TAG = "PREMIUM_LOCKED_A_2026_02_15";
 
 const STORAGE_KEY   = "steadylog.sessions.v3";
 const TEMPLATES_KEY = "steadylog.templates.v3";
@@ -199,29 +199,20 @@ const videoTitle = document.getElementById("videoTitle");
 
 function youtubeWebSearchUrl(q){ return "https://www.youtube.com/results?search_query=" + encodeURIComponent(q); }
 function youtubeEmbedSearchUrl(q){ return "https://www.youtube.com/embed?listType=search&list=" + encodeURIComponent(q) + "&rel=0&modestbranding=1&playsinline=1"; }
-function openVideo(title, searchOrUrl){
-  // Reliability-first on iPhone: open a real YouTube page (search or direct URL).
-  const q = (searchOrUrl || "").trim();
-  currentSearch = q;
-
-  const youtubeUrl = q
-    ? (q.startsWith("http") ? q : youtubeWebSearchUrl(q))
-    : "https://www.youtube.com/";
-
+function openVideo(title, youtubeUrl){
+  // iOS/Safari is unreliable with embedded YouTube (and many videos block embeds),
+  // so we use a clean modal + "Open in YouTube" button.
   videoTitle.textContent = `Video • ${title}`;
   videoFrame.innerHTML = `
     <div class="videoPlaceholder">
       <div class="vpTitle">Watch this exercise</div>
       <div class="vpSub">Tap <b>Open in YouTube</b> to play (best reliability on iPhone).</div>
     </div>`;
-
-  videoOpenNew.onclick = ()=> window.open(youtubeUrl, "_blank", "noopener,noreferrer");
-
+  openYtBtn.onclick = ()=> window.open(youtubeUrl, "_blank", "noopener");
   videoModal.classList.add("show");
-  videoModal.setAttribute("aria-hidden","false");
 }
-function closeVideo(){{
-  videoFrame.innerHTML = "";
+function closeVideo(){
+  videoFrame.src = "";
   videoModal.classList.remove("show");
   videoModal.setAttribute("aria-hidden","true");
 }
@@ -607,7 +598,7 @@ function workoutView(){
   view.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>addSet(Number(b.dataset.add)));
   view.querySelectorAll("[data-video]").forEach(b=>b.onclick=()=>{
     const ex=activeWorkout.exercises[Number(b.dataset.video)];
-    openVideo(ex.name, ex.videoSearch);
+    openVideo(ex.videoSearch, ex.name);
   });
   view.querySelectorAll("[data-exnote]").forEach(inp=>inp.oninput=(e)=>updateExerciseNote(Number(inp.dataset.exnote), e.target.value));
   view.querySelectorAll("[data-kg]").forEach(inp=>inp.oninput=(e)=>{
@@ -975,7 +966,8 @@ function templateEditView(tplId){
 /* Boot */
 function boot(){
   if("serviceWorker" in navigator){
-    navigator.serviceWorker.register("./sw.js").catch(()=>{});
+    navigator.serviceWorker.register("./sw.js?v=FIX3").catch(()=>{});
+    navigator.serviceWorker.ready.then(reg=>{ try{ reg.update(); }catch(e){} });
   }
   const draft = sessionStorage.getItem("steadylog.draft");
   if(draft){
