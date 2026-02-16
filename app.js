@@ -10,7 +10,7 @@
    - Macros: daily logging + targets + progress bars + streak
    - Exports: workouts CSV + tracker CSV + macros CSV
 */
-const BUILD_TAG = "FULLFIX_DIRECTVIDEO_2026_02_16_v1";
+const BUILD_TAG = "FULLFIX_DIRECTVIDEO_2026_02_16_v2";
 
 const STORAGE_KEY   = "steadylog.sessions.v3";
 const TEMPLATES_KEY = "steadylog.templates.v3";
@@ -199,18 +199,18 @@ const videoTitle = document.getElementById("videoTitle");
 
 function youtubeWebSearchUrl(q){ return "https://www.youtube.com/results?search_query=" + encodeURIComponent(q); }
 function youtubeEmbedSearchUrl(q){ return "https://www.youtube.com/embed?listType=search&list=" + encodeURIComponent(q) + "&rel=0&modestbranding=1&playsinline=1"; }
-function openVideo(title, youtubeUrl){
-  // iOS/Safari is unreliable with embedded YouTube (and many videos block embeds),
-  // so we use a clean modal + "Open in YouTube" button.
-  videoTitle.textContent = `Video • ${title}`;
-  videoFrame.innerHTML = `
-    <div class="videoPlaceholder">
-      <div class="vpTitle">Watch this exercise</div>
-      <div class="vpSub">Tap <b>Open in YouTube</b> to play (best reliability on iPhone).</div>
-    </div>`;
-  openYtBtn.onclick = ()=> window.open(youtubeUrl, "_blank", "noopener");
-  videoModal.classList.add("show");
+function openVideo(title, searchOrUrl){
+  const q = (searchOrUrl || "").trim();
+  if(!q) return;
+
+  const youtubeUrl = q.startsWith("http")
+    ? q
+    : "https://www.youtube.com/results?search_query=" + encodeURIComponent(q);
+
+  // Direct open (no modal / extra tap)
+  window.open(youtubeUrl, "_blank", "noopener,noreferrer");
 }
+
 function closeVideo(){
   videoFrame.src = "";
   videoModal.classList.remove("show");
@@ -598,7 +598,7 @@ function workoutView(){
   view.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>addSet(Number(b.dataset.add)));
   view.querySelectorAll("[data-video]").forEach(b=>b.onclick=()=>{
     const ex=activeWorkout.exercises[Number(b.dataset.video)];
-    openVideo(ex.videoSearch, ex.name);
+    openVideo(ex.name, ex.videoSearch);
   });
   view.querySelectorAll("[data-exnote]").forEach(inp=>inp.oninput=(e)=>updateExerciseNote(Number(inp.dataset.exnote), e.target.value));
   view.querySelectorAll("[data-kg]").forEach(inp=>inp.oninput=(e)=>{
