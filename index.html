@@ -15,57 +15,92 @@
         <div class="brand-dot"></div>
         <div class="brand-text">
           <div class="brand-title">Steady Log</div>
-          <div class="brand-subtitle" id="headerSubtitle">Home</div>
+          <div class="brand-subtitle" id="headerSubtitle">Dashboard</div>
         </div>
       </div>
+
       <div class="header-actions">
-        <button class="ghost-btn" id="btnExport" title="Export data">Export</button>
-        <button class="ghost-btn" id="btnReset" title="Reset data">Reset</button>
+        <button class="ghost-btn" id="btnExport" type="button" title="Export backup JSON">Export</button>
+        <button class="ghost-btn" id="btnImport" type="button" title="Import backup JSON">Import</button>
+        <button class="ghost-btn danger" id="btnReset" type="button" title="Reset all data">Reset</button>
+        <input id="fileImport" type="file" accept="application/json" style="display:none" />
       </div>
     </header>
 
     <main class="app-main">
 
-      <!-- HOME -->
-      <section class="screen active" id="screen-home" data-title="Home">
+      <!-- DASHBOARD -->
+      <section class="screen active" id="screen-dashboard" data-title="Dashboard">
         <div class="card">
-          <h2>Today</h2>
-          <div class="grid-2">
+          <div class="row-between">
+            <div>
+              <h2>Today</h2>
+              <p class="muted" id="helloLine">Ready when you are.</p>
+            </div>
+            <div class="pill" id="todayPill">—</div>
+          </div>
+
+          <div class="grid-3">
             <div class="stat">
-              <div class="stat-label">Workouts logged</div>
-              <div class="stat-value" id="statWorkouts">0</div>
+              <div class="stat-label">Sessions (30d)</div>
+              <div class="stat-value" id="stat30d">0</div>
             </div>
             <div class="stat">
-              <div class="stat-label">Last workout</div>
-              <div class="stat-value" id="statLastWorkout">—</div>
+              <div class="stat-label">Last session</div>
+              <div class="stat-value" id="statLast">—</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Top exercise</div>
+              <div class="stat-value" id="statTop">—</div>
             </div>
           </div>
         </div>
 
         <div class="card">
           <h2>Quick Log</h2>
-          <form id="quickLogForm" class="form">
-            <div class="form-row">
-              <label>Date</label>
-              <input type="date" id="qlDate" required />
+          <form id="quickSessionForm" class="form">
+            <div class="grid-2">
+              <div class="form-row">
+                <label>Date</label>
+                <input type="date" id="qsDate" required />
+              </div>
+              <div class="form-row">
+                <label>Session name</label>
+                <input type="text" id="qsName" placeholder="e.g., Upper Body" required />
+              </div>
             </div>
-            <div class="form-row">
-              <label>Workout name</label>
-              <input type="text" id="qlName" placeholder="e.g., Upper Body" required />
-            </div>
+
             <div class="form-row">
               <label>Notes</label>
-              <textarea id="qlNotes" placeholder="e.g., felt strong, incline press 3x10"></textarea>
+              <textarea id="qsNotes" placeholder="How did it feel? Any wins?"></textarea>
             </div>
-            <button class="primary-btn" type="submit">Save Workout</button>
+
+            <div class="divider"></div>
+
+            <div class="row-between">
+              <h3 class="h3">Exercises</h3>
+              <button class="secondary-btn" id="btnAddExerciseToQuick" type="button">+ Add exercise</button>
+            </div>
+
+            <div class="list" id="quickExercisesList"></div>
+
+            <button class="primary-btn" type="submit">Save Session</button>
           </form>
+        </div>
+
+        <div class="card">
+          <div class="row-between">
+            <h2>Recent Sessions</h2>
+            <button class="secondary-btn" type="button" id="btnGoLog">Open Log</button>
+          </div>
+          <div class="list" id="recentList"></div>
         </div>
       </section>
 
-      <!-- WORKOUTS -->
+      <!-- WORKOUTS / TEMPLATES -->
       <section class="screen" id="screen-workouts" data-title="Workouts">
         <div class="card">
-          <h2>Create Workout Template</h2>
+          <h2>Create Template</h2>
           <form id="templateForm" class="form">
             <div class="form-row">
               <label>Template name</label>
@@ -74,27 +109,35 @@
 
             <div class="divider"></div>
 
-            <div class="form-row">
-              <label>Exercise</label>
-              <input type="text" id="exName" placeholder="e.g., Incline Chest Press" />
+            <div class="grid-2">
+              <div class="form-row">
+                <label>Exercise</label>
+                <input type="text" id="tplExName" placeholder="e.g., Incline Chest Press" />
+              </div>
+              <div class="form-row">
+                <label>Notes (optional)</label>
+                <input type="text" id="tplExNotes" placeholder="cues / tempo" />
+              </div>
             </div>
+
             <div class="grid-3">
               <div class="form-row">
                 <label>Sets</label>
-                <input type="number" id="exSets" min="1" value="3" />
+                <input type="number" id="tplExSets" min="1" value="3" />
               </div>
               <div class="form-row">
                 <label>Reps</label>
-                <input type="text" id="exReps" value="8-12" />
+                <input type="text" id="tplExReps" value="8-12" />
               </div>
               <div class="form-row">
-                <label>Notes</label>
-                <input type="text" id="exNotes" placeholder="tempo / cues" />
+                <label>Rest (sec)</label>
+                <input type="number" id="tplExRest" min="0" value="90" />
               </div>
             </div>
-            <button class="secondary-btn" type="button" id="btnAddExercise">Add Exercise</button>
 
-            <div class="list" id="tplExerciseList"></div>
+            <button class="secondary-btn" id="btnTplAddExercise" type="button">Add to template</button>
+
+            <div class="list" id="tplExercisesPreview"></div>
 
             <button class="primary-btn" type="submit">Save Template</button>
           </form>
@@ -102,19 +145,42 @@
 
         <div class="card">
           <h2>Your Templates</h2>
-          <div class="list" id="templateList"></div>
+          <div class="list" id="templatesList"></div>
         </div>
       </section>
 
       <!-- LOG -->
       <section class="screen" id="screen-log" data-title="Log">
         <div class="card">
-          <h2>Workout Log</h2>
+          <div class="row-between">
+            <h2>Session Log</h2>
+            <button class="secondary-btn" type="button" id="btnNewFromTemplate">New from template</button>
+          </div>
+
           <div class="toolbar">
-            <input type="search" id="logSearch" placeholder="Search workouts..." />
+            <input type="search" id="logSearch" placeholder="Search sessions / exercises..." />
             <button class="secondary-btn" id="btnClearSearch" type="button">Clear</button>
           </div>
+
           <div class="list" id="logList"></div>
+        </div>
+
+        <div class="card" id="sessionDetailCard" style="display:none">
+          <div class="row-between">
+            <h2 id="detailTitle">Session</h2>
+            <button class="secondary-btn" type="button" id="btnCloseDetail">Close</button>
+          </div>
+          <p class="muted" id="detailMeta">—</p>
+          <p id="detailNotes" class="muted"></p>
+
+          <div class="divider"></div>
+
+          <h3 class="h3">Exercises</h3>
+          <div class="list" id="detailExercises"></div>
+
+          <div class="divider"></div>
+
+          <button class="secondary-btn danger" type="button" id="btnDeleteSession">Delete session</button>
         </div>
       </section>
 
@@ -122,8 +188,24 @@
       <section class="screen" id="screen-videos" data-title="Videos">
         <div class="card">
           <h2>Video Library</h2>
-          <p class="muted">Tap a video to open YouTube in a new tab.</p>
-          <div class="list" id="videoList"></div>
+          <p class="muted">Buttons open videos reliably in a new tab.</p>
+
+          <form id="videoAddForm" class="form">
+            <div class="grid-2">
+              <div class="form-row">
+                <label>Title</label>
+                <input type="text" id="vidTitle" placeholder="e.g., Incline Chest Press Cues" />
+              </div>
+              <div class="form-row">
+                <label>YouTube URL</label>
+                <input type="url" id="vidUrl" placeholder="https://www.youtube.com/watch?v=..." />
+              </div>
+            </div>
+            <button class="secondary-btn" type="submit">Add video</button>
+          </form>
+
+          <div class="divider"></div>
+          <div class="list" id="videosList"></div>
         </div>
       </section>
 
@@ -131,28 +213,85 @@
       <section class="screen" id="screen-settings" data-title="Settings">
         <div class="card">
           <h2>Settings</h2>
-          <div class="form-row">
-            <label>Your name (optional)</label>
-            <input type="text" id="setName" placeholder="e.g., Martin" />
+
+          <div class="grid-2">
+            <div class="form-row">
+              <label>Your name (optional)</label>
+              <input type="text" id="setName" placeholder="e.g., Martin" />
+            </div>
+            <div class="form-row">
+              <label>Default session name</label>
+              <input type="text" id="setDefaultSession" placeholder="e.g., Upper Body" />
+            </div>
           </div>
-          <div class="form-row">
-            <label>Default quick log workout name</label>
-            <input type="text" id="setDefaultWorkout" placeholder="e.g., Upper Body" />
+
+          <div class="grid-2">
+            <div class="form-row">
+              <label>Units</label>
+              <select id="setUnits">
+                <option value="kg">kg</option>
+                <option value="lb">lb</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label>Week starts</label>
+              <select id="setWeekStart">
+                <option value="mon">Monday</option>
+                <option value="sun">Sunday</option>
+              </select>
+            </div>
           </div>
+
           <button class="primary-btn" id="btnSaveSettings" type="button">Save Settings</button>
 
           <div class="divider"></div>
+
+          <h3 class="h3">Measurements</h3>
+          <form id="measForm" class="form">
+            <div class="grid-3">
+              <div class="form-row">
+                <label>Date</label>
+                <input type="date" id="measDate" required />
+              </div>
+              <div class="form-row">
+                <label>Weight</label>
+                <input type="number" id="measWeight" step="0.1" placeholder="e.g., 95.0" required />
+              </div>
+              <div class="form-row">
+                <label>Notes</label>
+                <input type="text" id="measNotes" placeholder="optional" />
+              </div>
+            </div>
+            <button class="secondary-btn" type="submit">Add measurement</button>
+          </form>
+
+          <div class="list" id="measList"></div>
+
+          <div class="divider"></div>
           <p class="muted small">
-            Data is stored in your browser (localStorage). Export gives you a JSON backup.
+            No Premium toggle in this build (as requested). Export/Import at top backs up everything.
           </p>
         </div>
       </section>
 
+      <!-- MODAL: choose template -->
+      <div class="modal" id="tplModal" aria-hidden="true">
+        <div class="modal-backdrop" data-close="tplModal"></div>
+        <div class="modal-card">
+          <div class="row-between">
+            <h2>Start from template</h2>
+            <button class="ghost-btn" type="button" data-close="tplModal">Close</button>
+          </div>
+          <p class="muted">Pick a template to prefill Quick Log.</p>
+          <div class="list" id="tplPickList"></div>
+        </div>
+      </div>
+
     </main>
 
     <nav class="bottom-nav" aria-label="Bottom navigation">
-      <button class="nav-btn active" data-nav="home" aria-label="Home">
-        <span class="nav-ico">🏠</span><span class="nav-text">Home</span>
+      <button class="nav-btn active" data-nav="dashboard" aria-label="Dashboard">
+        <span class="nav-ico">📊</span><span class="nav-text">Dash</span>
       </button>
       <button class="nav-btn" data-nav="workouts" aria-label="Workouts">
         <span class="nav-ico">🏋️</span><span class="nav-text">Workouts</span>
