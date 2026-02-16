@@ -981,3 +981,104 @@ function boot(){
   homeView();
 }
 boot();
+/* === FIX: Exercise video buttons (delegated click) === */
+(function steadyVideoFix() {
+  function normaliseYouTube(url) {
+    try {
+      const u = new URL(url);
+
+      // youtu.be/ID -> embed
+      if (u.hostname.includes("youtu.be")) {
+        const id = u.pathname.replace("/", "").trim();
+        return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0`;
+      }
+
+      // youtube.com/watch?v=ID -> embed
+      if (u.hostname.includes("youtube.com") && u.searchParams.get("v")) {
+        const id = u.searchParams.get("v");
+        return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0`;
+      }
+
+      // already embed or other URL
+      return url;
+    } catch {
+      return url;
+    }
+  }
+
+  function openVideo(url) {
+    if (!url) return;
+
+    // If your app has an in-app modal + iframe, use it
+    const modal =
+      document.querySelector("#videoModal") ||
+      document.querySelector(".video-modal") ||
+      document.querySelector("[data-video-modal]");
+
+    const frame =
+      document.querySelector("#videoFrame") ||
+      document.querySelector("iframe[data-video-frame]") ||
+      (modal ? modal.querySelector("iframe") : null);
+
+    if (modal && frame && frame.tagName === "IFRAME") {
+      const embed = normaliseYouTube(url);
+
+      frame.setAttribute(
+        "allow",
+        "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+      );
+      frame.setAttribute("allowfullscreen", "true");
+      frame.src = embed;
+
+      modal.classList.add("show");
+      modal.style.display = "block";
+      modal.setAttribute("aria-hidden", "false");
+      return;
+    }
+
+    // Fallback (always works): open in new tab
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  // One listener catches clicks for ALL dynamic exercise buttons
+  document.addEventListener("click", (e) => {
+    const el = e.target.closest(
+      ".video-btn, .exercise-video, .btn-video, [data-video-url], [data-video], [data-youtube], a.video"
+    );
+    if (!el) return;
+
+    const url =
+      el.getAttribute("data-video-url") ||
+      el.getAttribute("data-video") ||
+      el.getAttribute("data-youtube") ||
+      (el.tagName === "A" ? el.getAttribute("href") : "");
+
+    if (!url) return;
+
+    e.preventDefault();
+    openVideo(url);
+  });
+
+  // Optional close hook if you have a close button/backdrop
+  document.addEventListener("click", (e) => {
+    const close = e.target.closest("[data-close-video], .close-video, #closeVideo");
+    if (!close) return;
+
+    const modal =
+      document.querySelector("#videoModal") ||
+      document.querySelector(".video-modal") ||
+      document.querySelector("[data-video-modal]");
+
+    const frame =
+      document.querySelector("#videoFrame") ||
+      document.querySelector("iframe[data-video-frame]") ||
+      (modal ? modal.querySelector("iframe") : null);
+
+    if (!modal) return;
+
+    modal.classList.remove("show");
+    modal.style.display = "none";
+    modal.setAttribute("aria-hidden", "true");
+    if (frame && frame.tagName === "IFRAME") frame.src = "";
+  });
+})();
