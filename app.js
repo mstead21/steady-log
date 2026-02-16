@@ -220,7 +220,7 @@ function openVideo(title, searchOrUrl){
   videoModal.classList.add("show");
   videoModal.setAttribute("aria-hidden","false");
 }
-function closeVideo(){{
+function closeVideo(){
   videoFrame.innerHTML = "";
   videoModal.classList.remove("show");
   videoModal.setAttribute("aria-hidden","true");
