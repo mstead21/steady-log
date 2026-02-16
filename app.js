@@ -10,7 +10,7 @@
    - Macros: daily logging + targets + progress bars + streak
    - Exports: workouts CSV + tracker CSV + macros CSV
 */
-const BUILD_TAG = "v1_all_2026_02_16";
+const BUILD_TAG = "RESTTIMER_V2";
 
 const STORAGE_KEY   = "steadylog.sessions.v3";
 const TEMPLATES_KEY = "steadylog.templates.v3";
@@ -128,43 +128,6 @@ function getLastSetsForExercise(exId){
   }
   return [];
 }
-
-
-function extractYouTubeId(url){
-  try{
-    const u = new URL(url);
-    if(u.hostname.includes("youtu.be")){
-      const id = u.pathname.replace("/", "");
-      return id || null;
-    }
-    if(u.searchParams.get("v")) return u.searchParams.get("v");
-    const m = u.pathname.match(/\/shorts\/([^/]+)/);
-    if(m) return m[1];
-    return null;
-  }catch(e){
-    return null;
-  }
-}
-function youtubeThumbUrl(id){
-  return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
-}
-function getBestKgForExercise(exId){
-  const sessions = loadSessions();
-  let best = null;
-  for(const ses of sessions){
-    for(const ex of (ses.exercises||[])){
-      if(ex.id !== exId) continue;
-      for(const s of (ex.sets||[])){
-        const kg = Number(s.kg);
-        if(Number.isFinite(kg)){
-          best = best===null ? kg : Math.max(best, kg);
-        }
-      }
-    }
-  }
-  return best;
-}
-
 function getSuggestedKg(exId){
   const lastSets = getLastSetsForExercise(exId);
   if(!lastSets.length) return "";
@@ -237,17 +200,28 @@ const videoTitle = document.getElementById("videoTitle");
 function youtubeWebSearchUrl(q){ return "https://www.youtube.com/results?search_query=" + encodeURIComponent(q); }
 function youtubeEmbedSearchUrl(q){ return "https://www.youtube.com/embed?listType=search&list=" + encodeURIComponent(q) + "&rel=0&modestbranding=1&playsinline=1"; }
 function openVideo(title, searchOrUrl){
+  // Reliability-first on iPhone: open a real YouTube page (search or direct URL).
   const q = (searchOrUrl || "").trim();
-  if(!q) return;
+  currentSearch = q;
 
-  const youtubeUrl = q.startsWith("http")
-    ? q
-    : "https://www.youtube.com/results?search_query=" + encodeURIComponent(q);
+  const youtubeUrl = q
+    ? (q.startsWith("http") ? q : youtubeWebSearchUrl(q))
+    : "https://www.youtube.com/";
 
-  window.open(youtubeUrl, "_blank", "noopener,noreferrer");
+  videoTitle.textContent = `Video • ${title}`;
+  videoFrame.innerHTML = `
+    <div class="videoPlaceholder">
+      <div class="vpTitle">Watch this exercise</div>
+      <div class="vpSub">Tap <b>Open in YouTube</b> to play (best reliability on iPhone).</div>
+    </div>`;
+
+  videoOpenNew.onclick = ()=> window.open(youtubeUrl, "_blank", "noopener,noreferrer");
+
+  videoModal.classList.add("show");
+  videoModal.setAttribute("aria-hidden","false");
 }
 function closeVideo(){
-  videoFrame.src = "";
+  videoFrame.innerHTML = "";
   videoModal.classList.remove("show");
   videoModal.setAttribute("aria-hidden","true");
 }
@@ -260,61 +234,48 @@ let timerInterval=null, timerEndsAt=null;
 function stopTimer(){
   if(timerInterval) clearInterval(timerInterval);
   timerInterval=null; timerEndsAt=null;
-  const o=document.getElementById("timerOverlay");
-  if(o) o.remove();
+  const bar = document.getElementById("restBar");
+  if(bar) bar.remove();
 }
+
 function startTimer(seconds){
   stopTimer();
   timerEndsAt = Date.now() + seconds*1000;
 
-  const overlay=document.createElement("div");
-  overlay.id="timerOverlay";
-  overlay.style.position="fixed";
-  overlay.style.inset="0";
-  overlay.style.background="rgba(0,0,0,.55)";
-  overlay.style.backdropFilter="blur(10px)";
-  overlay.style.display="flex";
-  overlay.style.alignItems="center";
-  overlay.style.justifyContent="center";
-  overlay.style.zIndex="9999";
-
-  overlay.innerHTML = `
-    <div style="width:min(420px,92vw); background:rgba(20,20,27,.92); border:1px solid rgba(255,255,255,.14); border-radius:20px; padding:18px; box-shadow: 0 20px 60px rgba(0,0,0,.45);">
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
-        <div>
-          <div style="font-weight:900; font-size:14px;">Rest Timer</div>
-          <div style="color:rgba(233,233,242,.75); font-size:12px; margin-top:4px;">Vibrates when finished</div>
-        </div>
-        <button id="timerStop" class="btn danger" style="width:auto; padding:10px 12px;">Stop</button>
+  const bar = document.createElement("div");
+  bar.id = "restBar";
+  bar.innerHTML = `
+    <div class="restBarInner">
+      <div class="restBarLeft">
+        <div class="restBarTitle">Rest</div>
+        <div class="restBarTime" id="restBarTime">--</div>
       </div>
-      <div style="height:12px"></div>
-      <div id="timerClock" style="font-size:54px; font-weight:900; text-align:center;">--</div>
-      <div style="height:10px"></div>
-      <div style="display:flex; gap:10px;">
-        <button class="btn" style="flex:1" data-tquick="30">+30s</button>
-        <button class="btn" style="flex:1" data-tquick="60">+60s</button>
-        <button class="btn" style="flex:1" data-tquick="90">+90s</button>
+      <div class="restBarBtns">
+        <button class="btn small" id="restPlus15" type="button">+15s</button>
+        <button class="btn small" id="restPlus30" type="button">+30s</button>
+        <button class="btn danger small" id="restStop" type="button">Stop</button>
       </div>
-    </div>`;
-  document.body.appendChild(overlay);
+    </div>
+  `;
+  document.body.appendChild(bar);
 
-  overlay.querySelector("#timerStop").onclick = ()=>{ stopTimer(); toast("Timer stopped"); };
-  overlay.querySelectorAll("[data-tquick]").forEach(b=>{
-    b.onclick = ()=>{ timerEndsAt += Number(b.dataset.tquick)*1000; toast("Added"); };
-  });
+  const plus = (s)=>{ timerEndsAt += s*1000; tick(); };
+  document.getElementById("restPlus15").onclick = ()=> plus(15);
+  document.getElementById("restPlus30").onclick = ()=> plus(30);
+  document.getElementById("restStop").onclick   = stopTimer;
 
-  const tick=()=>{
-    const remain=Math.max(0, timerEndsAt-Date.now());
-    const sec=Math.ceil(remain/1000);
-    const m=String(Math.floor(sec/60));
-    const s=String(sec%60).padStart(2,"0");
-    const clock=overlay.querySelector("#timerClock");
-    if(clock) clock.textContent = `${m}:${s}`;
-    if(remain<=0){
+  function tick(){
+    const left = Math.max(0, Math.ceil((timerEndsAt - Date.now())/1000));
+    const el = document.getElementById("restBarTime");
+    if(el) el.textContent = left + "s";
+    if(left<=0){
       stopTimer();
-      vibrate([180,80,180,80,220]);
-      toast("Rest done ✅");
+      try{ if(navigator.vibrate) navigator.vibrate([80,40,80]); }catch(e){}
     }
+  }
+  tick();
+  timerInterval = setInterval(tick, 200);
+}
   };
   tick();
   timerInterval=setInterval(tick, 250);
@@ -600,21 +561,10 @@ function workoutView(){
             <div class="exercise-head">
               <div style="flex:1">
                 <div class="exercise-name">${escapeHtml(ex.name)}</div>
-                <div class="exercise-meta">🎯 ${ex.targetSets} sets • ${escapeHtml(ex.targetReps)} • Rest: ${rest}s • Last: ${escapeHtml(lastStr)} • Best: ${(()=>{const b=getBestKgForExercise(ex.id); return b===null?"—":(Math.round(b*10)/10)+"kg";})()}</div>
+                <div class="exercise-meta">🎯 ${ex.targetSets} sets • ${escapeHtml(ex.targetReps)} • Rest: ${rest}s • Last: ${escapeHtml(lastStr)}</div>
               </div>
               <div style="display:flex; gap:8px; align-items:center">
-                ${(()=>{ 
-                  const vs=(ex.videoSearch||"").trim();
-                  if(!vs) return "";
-                  const vid = vs.startsWith("http") ? extractYouTubeId(vs) : null;
-                  const thumb = vid ? youtubeThumbUrl(vid) : "";
-                  return `
-                    <button class="btn small videoBtn" style="width:auto" data-video="${idx}">
-                      ${thumb ? `<img class="videoThumb" src="${thumb}" alt="YouTube thumbnail">` : `<span class="videoThumbFallback">▶</span>`}
-                      <span>Video</span>
-                    </button>
-                  `;
-                })()}
+                <button class="btn small" style="width:auto" data-video="${idx}">▶ Video</button>
                 <button class="btn small" style="width:auto" data-add="${idx}">+ Set</button>
               </div>
             </div>
@@ -1012,7 +962,32 @@ function templateEditView(tplId){
 /* Boot */
 function boot(){
   if("serviceWorker" in navigator){
-    navigator.serviceWorker.register("./sw.js").catch(()=>{});
+    (async function () {
+  if (!("serviceWorker" in navigator)) return;
+
+  // One-time rescue: if an old SW cache caused a blank screen, clear it once per build.
+  const flag = "steadylog_sw_reset_" + BUILD_TAG;
+  try {
+    if (!localStorage.getItem(flag)) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+      localStorage.setItem(flag, "1");
+      // Reload once, then the new SW will be registered cleanly.
+      location.reload();
+      return;
+    }
+  } catch (e) {}
+
+  try {
+    const reg = await navigator.serviceWorker.register("./sw.js?v=" + BUILD_TAG);
+    // Ask for an update in case the browser held on to an older SW.
+    if (reg && reg.update) reg.update();
+  } catch (e) {}
+})().catch(()=>{});
   }
   const draft = sessionStorage.getItem("steadylog.draft");
   if(draft){
