@@ -10,29 +10,7 @@
    - Macros: daily logging + targets + progress bars + streak
    - Exports: workouts CSV + tracker CSV + macros CSV
 */
-const BUILD_TAG = "RESCUE_V3";
-
-// Show JS errors on-screen (helps prevent "blank screen" mystery)
-window.addEventListener("error", (e) => {
-  try{
-    const box = document.createElement("div");
-    box.style.position="fixed";
-    box.style.left="12px"; box.style.right="12px";
-    box.style.top="12px";
-    box.style.zIndex="99999";
-    box.style.background="rgba(255,77,109,.16)";
-    box.style.border="1px solid rgba(255,77,109,.35)";
-    box.style.borderRadius="14px";
-    box.style.padding="10px 12px";
-    box.style.color="#fff";
-    box.style.fontFamily="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial";
-    box.style.fontSize="12px";
-    box.textContent = "Steady Log error: " + (e.message || "Unknown error");
-    document.body.appendChild(box);
-  }catch(_){}
-});
-
-
+const BUILD_TAG = "BATCH_ALL_V5";
 
 const STORAGE_KEY   = "steadylog.sessions.v3";
 const TEMPLATES_KEY = "steadylog.templates.v3";
@@ -112,6 +90,23 @@ function escapeHtml(str){
   return String(str)
     .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
     .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
+
+// YouTube thumbnail helpers (works only when videoSearch is a YouTube URL)
+function extractYouTubeId(url){
+  try{
+    const u = new URL(url);
+    if(u.hostname.includes("youtu.be")){
+      return u.pathname.replace("/", "") || null;
+    }
+    if(u.searchParams.get("v")) return u.searchParams.get("v");
+    const m = u.pathname.match(/\/shorts\/([^/]+)/);
+    if(m) return m[1];
+    return null;
+  }catch(e){ return null; }
+}
+function youtubeThumbUrl(id){
+  return "https://img.youtube.com/vi/" + id + "/hqdefault.jpg";
 }
 function escapeAttr(str){
   return String(str ?? "")
@@ -221,23 +216,15 @@ const videoTitle = document.getElementById("videoTitle");
 
 function youtubeWebSearchUrl(q){ return "https://www.youtube.com/results?search_query=" + encodeURIComponent(q); }
 function youtubeEmbedSearchUrl(q){ return "https://www.youtube.com/embed?listType=search&list=" + encodeURIComponent(q) + "&rel=0&modestbranding=1&playsinline=1"; }
-function openVideo(title, youtubeUrl){
-  // iOS/Safari is unreliable with embedded YouTube (and many videos block embeds),
-  // so we use a clean modal + "Open in YouTube" button.
-  videoTitle.textContent = `Video • ${title}`;
-  videoFrame.innerHTML = `
-    <div class="videoPlaceholder">
-      <div class="vpTitle">Watch this exercise</div>
-      <div class="vpSub">Tap <b>Open in YouTube</b> to play (best reliability on iPhone).</div>
-    </div>`;
-  
-  videoModal.classList.add("show");
+function openVideo(title, searchOrUrl){
+  const q = (searchOrUrl || "").trim();
+  if(!q) return;
+  const youtubeUrl = q.startsWith("http")
+    ? q
+    : "https://www.youtube.com/results?search_query=" + encodeURIComponent(q);
+  window.open(youtubeUrl, "_blank", "noopener,noreferrer");
 }
-function closeVideo(){
-  videoFrame.src = "";
-  videoModal.classList.remove("show");
-  videoModal.setAttribute("aria-hidden","true");
-}
+function closeVideo(){ /* modal removed */ }
 videoClose.onclick = closeVideo;
 videoOpenNew.onclick = ()=>{ if(currentSearch) window.open(youtubeWebSearchUrl(currentSearch), "_blank"); };
 videoModal.addEventListener("click",(e)=>{ if(e.target===videoModal) closeVideo(); });
@@ -247,64 +234,47 @@ let timerInterval=null, timerEndsAt=null;
 function stopTimer(){
   if(timerInterval) clearInterval(timerInterval);
   timerInterval=null; timerEndsAt=null;
-  const o=document.getElementById("timerOverlay");
-  if(o) o.remove();
+  const bar = document.getElementById("restBar");
+  if(bar) bar.remove();
 }
+
 function startTimer(seconds){
   stopTimer();
   timerEndsAt = Date.now() + seconds*1000;
 
-  const overlay=document.createElement("div");
-  overlay.id="timerOverlay";
-  overlay.style.position="fixed";
-  overlay.style.inset="0";
-  overlay.style.background="rgba(0,0,0,.55)";
-  overlay.style.backdropFilter="blur(10px)";
-  overlay.style.display="flex";
-  overlay.style.alignItems="center";
-  overlay.style.justifyContent="center";
-  overlay.style.zIndex="9999";
-
-  overlay.innerHTML = `
-    <div style="width:min(420px,92vw); background:rgba(20,20,27,.92); border:1px solid rgba(255,255,255,.14); border-radius:20px; padding:18px; box-shadow: 0 20px 60px rgba(0,0,0,.45);">
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
-        <div>
-          <div style="font-weight:900; font-size:14px;">Rest Timer</div>
-          <div style="color:rgba(233,233,242,.75); font-size:12px; margin-top:4px;">Vibrates when finished</div>
-        </div>
-        <button id="timerStop" class="btn danger" style="width:auto; padding:10px 12px;">Stop</button>
+  const bar = document.createElement("div");
+  bar.id = "restBar";
+  bar.innerHTML = `
+    <div class="restBarInner">
+      <div class="restBarLeft">
+        <div class="restBarTitle">Rest</div>
+        <div class="restBarTime" id="restBarTime">--</div>
       </div>
-      <div style="height:12px"></div>
-      <div id="timerClock" style="font-size:54px; font-weight:900; text-align:center;">--</div>
-      <div style="height:10px"></div>
-      <div style="display:flex; gap:10px;">
-        <button class="btn" style="flex:1" data-tquick="30">+30s</button>
-        <button class="btn" style="flex:1" data-tquick="60">+60s</button>
-        <button class="btn" style="flex:1" data-tquick="90">+90s</button>
+      <div class="restBarBtns">
+        <button class="btn small" id="restPlus15" type="button">+15s</button>
+        <button class="btn small" id="restPlus30" type="button">+30s</button>
+        <button class="btn danger small" id="restStop" type="button">Stop</button>
       </div>
-    </div>`;
-  document.body.appendChild(overlay);
+    </div>
+  `;
+  document.body.appendChild(bar);
 
-  overlay.querySelector("#timerStop").onclick = ()=>{ stopTimer(); toast("Timer stopped"); };
-  overlay.querySelectorAll("[data-tquick]").forEach(b=>{
-    b.onclick = ()=>{ timerEndsAt += Number(b.dataset.tquick)*1000; toast("Added"); };
-  });
+  const plus = (s)=>{ timerEndsAt += s*1000; tick(); };
+  document.getElementById("restPlus15").onclick = ()=> plus(15);
+  document.getElementById("restPlus30").onclick = ()=> plus(30);
+  document.getElementById("restStop").onclick   = stopTimer;
 
-  const tick=()=>{
-    const remain=Math.max(0, timerEndsAt-Date.now());
-    const sec=Math.ceil(remain/1000);
-    const m=String(Math.floor(sec/60));
-    const s=String(sec%60).padStart(2,"0");
-    const clock=overlay.querySelector("#timerClock");
-    if(clock) clock.textContent = `${m}:${s}`;
-    if(remain<=0){
+  function tick(){
+    const left = Math.max(0, Math.ceil((timerEndsAt - Date.now())/1000));
+    const el = document.getElementById("restBarTime");
+    if(el) el.textContent = left + "s";
+    if(left<=0){
       stopTimer();
-      vibrate([180,80,180,80,220]);
-      toast("Rest done ✅");
+      try{ if(navigator.vibrate) navigator.vibrate([80,40,80]); }catch(e){}
     }
-  };
+  }
   tick();
-  timerInterval=setInterval(tick, 250);
+  timerInterval = setInterval(tick, 200);
 }
 
 /* Views */
@@ -587,10 +557,10 @@ function workoutView(){
             <div class="exercise-head">
               <div style="flex:1">
                 <div class="exercise-name">${escapeHtml(ex.name)}</div>
-                <div class="exercise-meta">🎯 ${ex.targetSets} sets • ${escapeHtml(ex.targetReps)} • Rest: ${rest}s • Last: ${escapeHtml(lastStr)}</div>
+                <div class="exercise-meta">🎯 ${ex.targetSets} sets • ${escapeHtml(ex.targetReps)} • Rest: ${rest}s • Last: ${escapeHtml(lastStr)} • Best: ${escapeHtml(bestStr)}<br><span style="color:rgba(233,233,242,.65);font-size:11px">Recent: ${escapeHtml(recentStr)}</span></div>
               </div>
               <div style="display:flex; gap:8px; align-items:center">
-                <button class="btn small" style="width:auto" data-video="${idx}">▶ Video</button>
+                ${(()=>{ const vs=(ex.videoSearch||"").trim(); if(!vs) return `<button class="btn small" style="width:auto" disabled>Video</button>`; const vid = vs.startsWith("http") ? extractYouTubeId(vs) : null; const thumb = vid ? youtubeThumbUrl(vid) : ""; return `<button class="videoMiniBtn" type="button" data-video="${idx}" style="width:auto">${thumb?`<img class="videoMiniThumb" src="${thumb}" alt="YouTube thumbnail">`:`<div class="videoMiniThumb" style="display:flex;align-items:center;justify-content:center;font-weight:900;">▶</div>`}<div class="videoMiniMeta"><div class="videoMiniTitle">Video</div><div class="videoMiniSub">${vid?"Watch on YouTube":"Search on YouTube"}</div></div></button>`; })()}
                 <button class="btn small" style="width:auto" data-add="${idx}">+ Set</button>
               </div>
             </div>
@@ -620,7 +590,7 @@ function workoutView(){
   view.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>addSet(Number(b.dataset.add)));
   view.querySelectorAll("[data-video]").forEach(b=>b.onclick=()=>{
     const ex=activeWorkout.exercises[Number(b.dataset.video)];
-    openVideo(ex.videoSearch, ex.name);
+    openVideo(ex.name, ex.videoSearch);
   });
   view.querySelectorAll("[data-exnote]").forEach(inp=>inp.oninput=(e)=>updateExerciseNote(Number(inp.dataset.exnote), e.target.value));
   view.querySelectorAll("[data-kg]").forEach(inp=>inp.oninput=(e)=>{
