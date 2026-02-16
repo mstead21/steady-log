@@ -1,55 +1,33 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#0c0c10" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Steady Log</title>
 
-  <link rel="manifest" href="./manifest.json?v=PREMIUM_LOCKED_A_2026_02_15" />
-  <link rel="stylesheet" href="./styles.css?v=PREMIUM_LOCKED_A_2026_02_15" />
-  <link rel="apple-touch-icon" href="./icon-192.png" />
+  <!-- Cache bust so iPhone loads fresh -->
+  <link rel="stylesheet" href="styles.css?v=2" />
 </head>
+
 <body>
-  <div class="container">
-    <div class="header">
-      <div class="brand">
-        <div class="logo">SL</div>
-        <div>
-          <h1>Steady Log</h1>
-          <div class="sub">Weights-only • Dark mode • Offline</div>
-        </div>
-      </div>
-      <div class="pill" id="pillStatus">Ready</div>
-    </div>
+  <div id="app" class="app">
 
-    <div id="view"></div>
+    <header class="app-header">
+      <h1>Steady Log</h1>
+    </header>
+
+    <main id="mainContent"></main>
+
+    <nav class="bottom-nav">
+      <button data-screen="home">Home</button>
+      <button data-screen="workouts">Workouts</button>
+      <button data-screen="log">Log</button>
+      <button data-screen="videos">Videos</button>
+      <button data-screen="settings">Settings</button>
+    </nav>
+
   </div>
 
-  <div class="footerbar">
-    <div class="wrap" id="footerWrap"></div>
-  </div>
-
-  <div class="toast" id="toast">Saved ✅</div>
-
-  <!-- Video Modal -->
-  <div class="modal" id="videoModal" aria-hidden="true">
-    <div class="modalCard">
-      <div class="modalHead">
-        <div class="modalTitle" id="videoTitle">Video</div>
-        <button class="btn danger small" id="videoClose">Close</button>
-      </div>
-      <div class="hr"></div>
-      <div class="videoWrap">
-        <div id="videoFrame" class="videoFrame"></div>
-      </div>
-      <div class="hr"></div>
-      <button class="btn" id="videoOpenNew">Open in YouTube</button>
-    </div>
-  </div>
-
-  <script src="./app.js?v=PREMIUM_LOCKED_A_2026_02_15"></script>
+  <script src="app.js?v=2"></script>
 </body>
 </html>
