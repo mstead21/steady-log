@@ -1,3 +1,27 @@
+/* === FIX: remove top blue band / weird top strip === */
+html, body {
+  margin: 0 !important;
+  padding: 0 !important;
+  background: #0b0b0b !important;
+  min-height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Force any top bars to match background */
+header, .header, .topbar, .app-header, .navbar, .nav, .titlebar {
+  background: #0b0b0b !important;
+  border-top: none !important;
+  box-shadow: none !important;
+}
+
+/* If there’s a safe-area/padding issue on iPhone */
+.app, #app, .container {
+  background: #0b0b0b !important;
+}
 :root{
   --bg:#0c0c10;
   --bg2:#07070a;
