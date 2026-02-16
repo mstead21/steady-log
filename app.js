@@ -1,997 +1,983 @@
-/* =========================================================
-   Steady Log — Full Feature Build
-   - Templates with exercise video URLs
-   - Quick Start session logging (sets/weight/reps/RIR)
-   - Exercise video buttons open IN-APP modal
-   - Log + session details
-   - Videos library
-   - Export/Import/Reset
-   ========================================================= */
+/* Steady Log — FULL PREMIUM LOCKED BUILD (PREMIUM_LOCKED_A_2026_02_15)
+   A) Per-exercise rest timers (each exercise has its own rest time)
+   Premium:
+   - Dashboard + streaks + 7-day weight trend
+   - Workout logging + suggested KG
+   - Per-exercise rest timer auto-starts on ✓
+   - Video button: YouTube SEARCH (never breaks)
+   - Templates editor (name, sets, reps, rest, videoSearch) + reorder + delete
+   - Tracker: daily weight + weekly waist
+   - Macros: daily logging + targets + progress bars + streak
+   - Exports: workouts CSV + tracker CSV + macros CSV
+*/
+const BUILD_TAG = "PREMIUM_LOCKED_A_2026_02_15";
 
-const STORAGE_KEY = "steadylog_full_v1";
+const STORAGE_KEY   = "steadylog.sessions.v3";
+const TEMPLATES_KEY = "steadylog.templates.v3";
+const TRACKER_KEY   = "steadylog.tracker.v2";
+const MACROS_KEY    = "steadylog.macros.v1";
 
-function uid() {
-  return Math.random().toString(16).slice(2) + Date.now().toString(16);
-}
-function todayISO() {
-  const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-}
-function escapeHtml(s) {
-  return String(s ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-function escapeAttr(s) {
-  return escapeHtml(s).replaceAll("`", "&#096;");
-}
-function safeNumber(v, fallback = 0) {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : fallback;
-}
-function clampStr(s, max = 400) {
-  const t = String(s ?? "");
-  return t.length > max ? t.slice(0, max) : t;
-}
+const MACRO_TARGETS = { calories: 2010, protein: 210, carbs: 180, fat: 50 };
 
-const defaultState = {
-  settings: {
-    name: "",
-    defaultSession: "",
-    units: "kg",
-    weekStart: "mon"
+const DEFAULT_TEMPLATES = [
+  {
+    id: "upperA",
+    name: "Upper A",
+    subtitle: "Chest & Arms",
+    exercises: [
+      { id:"smith_incline", name:"Smith Incline Bench Press", sets:3, reps:"6–8",  rest:120, videoSearch:"smith machine incline bench press form" },
+      { id:"row_chest_support", name:"Chest Supported Row Machine (Plate)", sets:3, reps:"8–12", rest:90,  videoSearch:"chest supported row machine plate loaded form" },
+      { id:"chest_press_flat", name:"Chest Press (Plate Loaded Flat)", sets:3, reps:"8–10", rest:90,  videoSearch:"plate loaded chest press machine form" },
+      { id:"shoulder_press_plate", name:"Shoulder Press (Plate Machine)", sets:3, reps:"8–10", rest:90,  videoSearch:"plate loaded shoulder press machine form" },
+      { id:"tri_pushdown", name:"Cable Tricep Pushdown", sets:3, reps:"10–15", rest:60, videoSearch:"cable tricep pushdown form" },
+      { id:"preacher_curl", name:"Preacher Curl Machine", sets:3, reps:"10–15", rest:60, videoSearch:"preacher curl machine form" }
+    ]
   },
-  templates: [],
-  sessions: [],
-  videos: [
-    { id: uid(), title: "Incline Chest Press (Machine) - Form", url: "https://www.youtube.com/watch?v=U0bhE67HuDY" }
-  ]
-};
-
-function loadState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return structuredClone(defaultState);
-    const parsed = JSON.parse(raw);
-
-    const base = structuredClone(defaultState);
-    const out = {
-      ...base,
-      ...parsed,
-      settings: { ...base.settings, ...(parsed.settings || {}) },
-      templates: Array.isArray(parsed.templates) ? parsed.templates : [],
-      sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [],
-      videos: Array.isArray(parsed.videos) ? parsed.videos : structuredClone(base.videos)
-    };
-
-    // Normalize template exercises with videoUrl
-    out.templates = out.templates.map(t => ({
-      id: t.id || uid(),
-      name: t.name || "Template",
-      exercises: Array.isArray(t.exercises) ? t.exercises.map(ex => ({
-        id: ex.id || uid(),
-        name: ex.name || "Exercise",
-        notes: ex.notes || "",
-        defaultSets: safeNumber(ex.defaultSets, 3),
-        defaultReps: ex.defaultReps || "8-12",
-        defaultRest: safeNumber(ex.defaultRest, 90),
-        videoUrl: ex.videoUrl || ""
-      })) : []
-    }));
-
-    // Normalize sessions
-    out.sessions = out.sessions.map(s => ({
-      id: s.id || uid(),
-      date: s.date || todayISO(),
-      name: s.name || "Session",
-      notes: s.notes || "",
-      exercises: Array.isArray(s.exercises) ? s.exercises.map(ex => ({
-        id: ex.id || uid(),
-        name: ex.name || "Exercise",
-        notes: ex.notes || "",
-        videoUrl: ex.videoUrl || "",
-        sets: Array.isArray(ex.sets) ? ex.sets.map(set => ({
-          id: set.id || uid(),
-          weight: set.weight ?? "",
-          reps: set.reps ?? "",
-          rir: set.rir ?? ""
-        })) : []
-      })) : []
-    }));
-
-    out.videos = out.videos.map(v => ({ id: v.id || uid(), title: v.title || "Video", url: v.url || "" }));
-
-    return out;
-  } catch {
-    return structuredClone(defaultState);
+  {
+    id: "lowerA",
+    name: "Lower A",
+    subtitle: "Quads & Burn",
+    exercises: [
+      { id:"smith_squat", name:"Smith Squat", sets:4, reps:"6–8", rest:120, videoSearch:"smith machine squat form" },
+      { id:"leg_press", name:"45° Leg Press", sets:3, reps:"10–15", rest:90, videoSearch:"45 degree leg press form" },
+      { id:"walking_lunges", name:"Walking Lunges", sets:2, reps:"20 steps", rest:90, videoSearch:"walking lunges form" },
+      { id:"leg_ext", name:"Leg Extension", sets:3, reps:"12–15", rest:60, videoSearch:"leg extension machine form" },
+      { id:"standing_calves", name:"Standing Calf Raise", sets:3, reps:"15–20", rest:60, videoSearch:"standing calf raise machine form" }
+    ]
+  },
+  {
+    id: "upperB",
+    name: "Upper B",
+    subtitle: "Back & Shoulders",
+    exercises: [
+      { id:"assist_pullup", name:"Assisted Pull-Up Machine", sets:3, reps:"6–10", rest:120, videoSearch:"assisted pull up machine form" },
+      { id:"lat_pulldown", name:"Lat Pulldown", sets:3, reps:"8–12", rest:90, videoSearch:"lat pulldown form" },
+      { id:"rear_delt", name:"Rear Delt Machine", sets:3, reps:"12–15", rest:60, videoSearch:"rear delt machine form" },
+      { id:"face_pull", name:"Face Pull (Cable)", sets:3, reps:"12–15", rest:60, videoSearch:"cable face pull form" },
+      { id:"pec_deck", name:"Pec Deck / Fly (Light)", sets:2, reps:"12–15", rest:60, videoSearch:"pec deck machine fly form" },
+      { id:"hammer_curl", name:"DB Hammer Curl", sets:3, reps:"10–12", rest:60, videoSearch:"dumbbell hammer curl form" }
+    ]
+  },
+  {
+    id: "lowerB",
+    name: "Lower B",
+    subtitle: "Hamstrings & Glutes",
+    exercises: [
+      { id:"smith_rdl", name:"Smith Romanian Deadlift", sets:3, reps:"6–8", rest:120, videoSearch:"smith machine romanian deadlift form" },
+      { id:"hip_thrust", name:"Hip Thrust Machine", sets:3, reps:"8–10", rest:90, videoSearch:"hip thrust machine form" },
+      { id:"lying_curl", name:"Lying Leg Curl", sets:3, reps:"10–12", rest:90, videoSearch:"lying leg curl machine form" },
+      { id:"smith_split", name:"Smith Split Squat", sets:2, reps:"10 / leg", rest:90, videoSearch:"smith machine split squat form" },
+      { id:"seated_calves", name:"Seated Calf Raise", sets:3, reps:"15–20", rest:60, videoSearch:"seated calf raise machine form" }
+    ]
   }
+];
+
+/* Utils */
+function nowISO(){ return new Date().toISOString(); }
+function todayYMD(){ return new Date().toISOString().slice(0,10); }
+function fmtDate(iso){
+  const d = new Date(iso);
+  return d.toLocaleString(undefined, { weekday:"short", year:"numeric", month:"short", day:"numeric", hour:"2-digit", minute:"2-digit" });
 }
-
-let state = loadState();
-function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+function toast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"),1600);
 }
-
-const $ = (sel) => document.querySelector(sel);
-const $$ = (sel) => document.querySelectorAll(sel);
-
-function setSubtitle(text) {
-  $("#headerSubtitle").textContent = text;
+function vibrate(pattern=[120,60,120]){ try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){} }
+function escapeHtml(str){
+  return String(str)
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#039;");
 }
-
-function showScreen(key) {
-  $$(".screen").forEach(s => s.classList.remove("active"));
-  const el = $(`#screen-${key}`);
-  if (el) el.classList.add("active");
-
-  $$(".nav-btn").forEach(b => b.classList.remove("active"));
-  const btn = document.querySelector(`.nav-btn[data-nav="${key}"]`);
-  if (btn) btn.classList.add("active");
-
-  setSubtitle(el?.dataset?.title || key);
-
-  if (key !== "log") $("#sessionDetailCard").style.display = "none";
+function escapeAttr(str){
+  return String(str ?? "")
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;");
 }
+function loadJSON(key,fallback){ try{ const raw=localStorage.getItem(key); return raw?JSON.parse(raw):fallback; }catch(e){ return fallback; } }
+function saveJSON(key,val){ localStorage.setItem(key, JSON.stringify(val)); }
+function avg(arr){ if(!arr.length) return 0; return arr.reduce((a,b)=>a+b,0)/arr.length; }
 
-/* -------------------------
-   Video modal (in-app)
-------------------------- */
-function toYouTubeEmbed(url) {
-  try {
-    const u = new URL(url);
+/* Data */
+function loadSessions(){ return loadJSON(STORAGE_KEY, []); }
+function saveSessions(s){ saveJSON(STORAGE_KEY, s); }
 
-    if (u.hostname.includes("youtu.be")) {
-      const id = u.pathname.replace("/", "").trim();
-      return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0`;
+function loadTemplates(){
+  const saved = loadJSON(TEMPLATES_KEY, null);
+  if(saved && Array.isArray(saved) && saved.length) return saved;
+  return DEFAULT_TEMPLATES;
+}
+function saveTemplates(tpls){ saveJSON(TEMPLATES_KEY, tpls); }
+
+function loadTracker(){ return loadJSON(TRACKER_KEY, { weights:[], waists:[] }); }
+function saveTracker(t){ saveJSON(TRACKER_KEY, t); }
+
+function loadMacros(){ return loadJSON(MACROS_KEY, {}); }
+function saveMacros(m){ saveJSON(MACROS_KEY, m); }
+
+/* Suggested KG */
+function getLastSetsForExercise(exId){
+  const sessions = loadSessions();
+  for(let i=sessions.length-1;i>=0;i--){
+    const ses=sessions[i];
+    for(const ex of ses.exercises){
+      if(ex.id===exId && ex.sets && ex.sets.length) return ex.sets;
     }
-
-    if (u.hostname.includes("youtube.com") && u.searchParams.get("v")) {
-      const id = u.searchParams.get("v");
-      return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0`;
-    }
-
-    // If it's already embed, keep it
-    return url;
-  } catch {
-    return url;
   }
+  return [];
+}
+function getSuggestedKg(exId){
+  const lastSets = getLastSetsForExercise(exId);
+  if(!lastSets.length) return "";
+  const last = lastSets[lastSets.length-1];
+  return (Number(last.kg)||"");
 }
 
-function openVideoModal(title, url) {
-  const modal = $("#videoModal");
-  const frame = $("#videoFrame");
-  const t = $("#videoModalTitle");
-  const u = $("#videoModalUrl");
-
-  t.textContent = title || "Video";
-  u.textContent = url || "";
-
-  frame.src = toYouTubeEmbed(url);
-  modal.classList.add("show");
-  modal.style.display = "block";
-  modal.setAttribute("aria-hidden", "false");
+/* Stats + streaks */
+function ymdFromISO(iso){ return new Date(iso).toISOString().slice(0,10); }
+function computeStats(){
+  const sessions = loadSessions();
+  const total=sessions.length;
+  const last= total? sessions[sessions.length-1].startedAt : null;
+  const best={};
+  for(const ses of sessions){
+    for(const ex of ses.exercises){
+      for(const st of (ex.sets||[])){
+        const kg=Number(st.kg)||0, reps=Number(st.reps)||0;
+        if(!best[ex.id] || kg>best[ex.id].kg || (kg===best[ex.id].kg && reps>best[ex.id].reps)) best[ex.id]={kg,reps,at:ses.startedAt};
+      }
+    }
+  }
+  return {total,last,best};
+}
+function calcWorkoutStreak(){
+  const sessions = loadSessions();
+  if(!sessions.length) return 0;
+  const days = Array.from(new Set(sessions.map(s=>ymdFromISO(s.startedAt)))).sort();
+  let streak=0;
+  let cur=todayYMD();
+  for(let i=days.length-1;i>=0;i--){
+    const d=days[i];
+    if(d===cur){
+      streak++;
+      const dt=new Date(cur+"T00:00:00Z");
+      dt.setUTCDate(dt.getUTCDate()-1);
+      cur=dt.toISOString().slice(0,10);
+    }
+  }
+  return streak;
+}
+function calcMacrosStreak(){
+  const m=loadMacros();
+  const days=Object.keys(m).sort();
+  if(!days.length) return 0;
+  let streak=0;
+  let cur=todayYMD();
+  for(let i=days.length-1;i>=0;i--){
+    const d=days[i];
+    const row=m[d];
+    const ok=row && (Number(row.calories)||0)>0;
+    if(d===cur && ok){
+      streak++;
+      const dt=new Date(cur+"T00:00:00Z");
+      dt.setUTCDate(dt.getUTCDate()-1);
+      cur=dt.toISOString().slice(0,10);
+    }
+  }
+  return streak;
 }
 
-function closeVideoModal() {
-  const modal = $("#videoModal");
-  const frame = $("#videoFrame");
-  frame.src = "";
-  modal.classList.remove("show");
-  modal.style.display = "none";
-  modal.setAttribute("aria-hidden", "true");
+/* Video modal (YouTube search) */
+let currentSearch = "";
+const videoModal = document.getElementById("videoModal");
+const videoFrame = document.getElementById("videoFrame");
+const videoClose = document.getElementById("videoClose");
+const videoOpenNew = document.getElementById("videoOpenNew");
+const videoTitle = document.getElementById("videoTitle");
+
+function youtubeWebSearchUrl(q){ return "https://www.youtube.com/results?search_query=" + encodeURIComponent(q); }
+function youtubeEmbedSearchUrl(q){ return "https://www.youtube.com/embed?listType=search&list=" + encodeURIComponent(q) + "&rel=0&modestbranding=1&playsinline=1"; }
+function openVideo(title, youtubeUrl){
+  // iOS/Safari is unreliable with embedded YouTube (and many videos block embeds),
+  // so we use a clean modal + "Open in YouTube" button.
+  videoTitle.textContent = `Video • ${title}`;
+  videoFrame.innerHTML = `
+    <div class="videoPlaceholder">
+      <div class="vpTitle">Watch this exercise</div>
+      <div class="vpSub">Tap <b>Open in YouTube</b> to play (best reliability on iPhone).</div>
+    </div>`;
+  openYtBtn.onclick = ()=> window.open(youtubeUrl, "_blank", "noopener");
+  videoModal.classList.add("show");
 }
-
-/* Close modals */
-document.addEventListener("click", (e) => {
-  const close = e.target.closest("[data-close]");
-  if (!close) return;
-  const id = close.getAttribute("data-close");
-  if (id === "videoModal") closeVideoModal();
-  if (id === "tplModal") closeModal("tplModal");
-});
-
-function openModal(id) {
-  const m = document.getElementById(id);
-  if (!m) return;
-  m.classList.add("show");
-  m.setAttribute("aria-hidden", "false");
+function closeVideo(){
+  videoFrame.src = "";
+  videoModal.classList.remove("show");
+  videoModal.setAttribute("aria-hidden","true");
 }
-function closeModal(id) {
-  const m = document.getElementById(id);
-  if (!m) return;
-  m.classList.remove("show");
-  m.setAttribute("aria-hidden", "true");
+videoClose.onclick = closeVideo;
+videoOpenNew.onclick = ()=>{ if(currentSearch) window.open(youtubeWebSearchUrl(currentSearch), "_blank"); };
+videoModal.addEventListener("click",(e)=>{ if(e.target===videoModal) closeVideo(); });
+
+/* Rest timer overlay */
+let timerInterval=null, timerEndsAt=null;
+function stopTimer(){
+  if(timerInterval) clearInterval(timerInterval);
+  timerInterval=null; timerEndsAt=null;
+  const o=document.getElementById("timerOverlay");
+  if(o) o.remove();
 }
+function startTimer(seconds){
+  stopTimer();
+  timerEndsAt = Date.now() + seconds*1000;
 
-/* Global delegated video click:
-   works for exercise video buttons + library videos */
-document.addEventListener("click", (e) => {
-  const btn = e.target.closest("[data-video-url]");
-  if (!btn) return;
-  const url = btn.getAttribute("data-video-url");
-  const title = btn.getAttribute("data-video-title") || "Video";
-  if (!url) return;
-  e.preventDefault();
-  openVideoModal(title, url);
-});
+  const overlay=document.createElement("div");
+  overlay.id="timerOverlay";
+  overlay.style.position="fixed";
+  overlay.style.inset="0";
+  overlay.style.background="rgba(0,0,0,.55)";
+  overlay.style.backdropFilter="blur(10px)";
+  overlay.style.display="flex";
+  overlay.style.alignItems="center";
+  overlay.style.justifyContent="center";
+  overlay.style.zIndex="9999";
 
-/* -------------------------
-   Quick Draft
-------------------------- */
-let quickDraft = {
-  date: todayISO(),
-  name: "",
-  notes: "",
-  exercises: [] // {id,name,notes,videoUrl,sets:[{id,weight,reps,rir}]}
-};
+  overlay.innerHTML = `
+    <div style="width:min(420px,92vw); background:rgba(20,20,27,.92); border:1px solid rgba(255,255,255,.14); border-radius:20px; padding:18px; box-shadow: 0 20px 60px rgba(0,0,0,.45);">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+        <div>
+          <div style="font-weight:900; font-size:14px;">Rest Timer</div>
+          <div style="color:rgba(233,233,242,.75); font-size:12px; margin-top:4px;">Vibrates when finished</div>
+        </div>
+        <button id="timerStop" class="btn danger" style="width:auto; padding:10px 12px;">Stop</button>
+      </div>
+      <div style="height:12px"></div>
+      <div id="timerClock" style="font-size:54px; font-weight:900; text-align:center;">--</div>
+      <div style="height:10px"></div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn" style="flex:1" data-tquick="30">+30s</button>
+        <button class="btn" style="flex:1" data-tquick="60">+60s</button>
+        <button class="btn" style="flex:1" data-tquick="90">+90s</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
 
-function resetQuickDraft() {
-  quickDraft = {
-    date: todayISO(),
-    name: state.settings.defaultSession || "",
-    notes: "",
-    exercises: []
+  overlay.querySelector("#timerStop").onclick = ()=>{ stopTimer(); toast("Timer stopped"); };
+  overlay.querySelectorAll("[data-tquick]").forEach(b=>{
+    b.onclick = ()=>{ timerEndsAt += Number(b.dataset.tquick)*1000; toast("Added"); };
+  });
+
+  const tick=()=>{
+    const remain=Math.max(0, timerEndsAt-Date.now());
+    const sec=Math.ceil(remain/1000);
+    const m=String(Math.floor(sec/60));
+    const s=String(sec%60).padStart(2,"0");
+    const clock=overlay.querySelector("#timerClock");
+    if(clock) clock.textContent = `${m}:${s}`;
+    if(remain<=0){
+      stopTimer();
+      vibrate([180,80,180,80,220]);
+      toast("Rest done ✅");
+    }
   };
+  tick();
+  timerInterval=setInterval(tick, 250);
 }
 
-function renderDashboard() {
-  $("#todayPill").textContent = todayISO();
-  const name = (state.settings.name || "").trim();
-  $("#helloLine").textContent = name ? `Morning ${name} 👊` : "Ready when you are.";
+/* Views */
+const view = document.getElementById("view");
+let TEMPLATES = loadTemplates();
+let activeWorkout = null;
 
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 30);
-  const sessions30 = state.sessions.filter(s => new Date(s.date) >= cutoff);
-  $("#stat30d").textContent = String(sessions30.length);
+function setPill(text){ document.getElementById("pillStatus").textContent=text; }
 
-  const last = state.sessions.slice().sort((a,b) => (b.date||"").localeCompare(a.date||""))[0];
-  $("#statLast").textContent = last ? `${last.date} — ${last.name}` : "—";
-
-  const freq = new Map();
-  state.sessions.forEach(s => (s.exercises||[]).forEach(ex => {
-    const k = (ex.name||"").trim().toLowerCase();
-    if (!k) return;
-    freq.set(k, (freq.get(k) || 0) + 1);
-  }));
-  let top = "—", topN = 0;
-  for (const [k,v] of freq.entries()) {
-    if (v > topN) { topN = v; top = k; }
-  }
-  $("#statTop").textContent = top === "—" ? "—" : top.split(" ").map(w => w.charAt(0).toUpperCase()+w.slice(1)).join(" ");
-
-  // Recent
-  const recent = state.sessions.slice().sort((a,b) => (b.date||"").localeCompare(a.date||"")).slice(0,5);
-  const list = $("#recentList");
-  list.innerHTML = "";
-  if (!recent.length) {
-    list.innerHTML = `<div class="item"><div class="item-title">No sessions yet</div><div class="item-sub">Create a template or log a session.</div></div>`;
-  } else {
-    recent.forEach(s => {
-      const div = document.createElement("div");
-      div.className = "item";
-      div.innerHTML = `
-        <div class="item-head">
-          <div>
-            <div class="item-title">${escapeHtml(s.name)}</div>
-            <div class="item-sub">${escapeHtml(s.date)} • ${(s.exercises?.length||0)} exercises</div>
-          </div>
-          <button class="secondary-btn" type="button" data-action="open-session" data-id="${s.id}">View</button>
-        </div>
-      `;
-      list.appendChild(div);
-    });
-  }
-}
-
-function renderQuickForm() {
-  $("#qsDate").value = quickDraft.date;
-  $("#qsName").value = quickDraft.name;
-  $("#qsNotes").value = quickDraft.notes;
-  renderQuickExercises();
-}
-
-function renderQuickExercises() {
-  const list = $("#quickExercisesList");
-  list.innerHTML = "";
-
-  if (!quickDraft.exercises.length) {
-    list.innerHTML = `<div class="item"><div class="item-title">No exercises yet</div><div class="item-sub">Add exercises and sets, then save session.</div></div>`;
-    return;
-  }
-
-  const units = state.settings.units || "kg";
-
-  quickDraft.exercises.forEach(ex => {
-    const setsHtml = (ex.sets || []).map((set, idx) => `
-      <div class="item" style="margin-top:10px">
-        <div class="item-head">
-          <div>
-            <div class="item-title">Set ${idx + 1}</div>
-            <div class="item-sub">Weight / Reps / RIR</div>
-          </div>
-          <button class="secondary-btn danger" type="button" data-action="qs-del-set" data-ex="${ex.id}" data-set="${set.id}">Remove</button>
-        </div>
-
-        <div class="grid-3" style="margin-top:10px">
-          <div class="form-row">
-            <label>Weight (${units})</label>
-            <input inputmode="decimal" type="number" step="0.5" value="${escapeAttr(set.weight)}"
-              data-action="qs-set-weight" data-ex="${ex.id}" data-set="${set.id}" />
-          </div>
-          <div class="form-row">
-            <label>Reps</label>
-            <input inputmode="numeric" type="number" step="1" value="${escapeAttr(set.reps)}"
-              data-action="qs-set-reps" data-ex="${ex.id}" data-set="${set.id}" />
-          </div>
-          <div class="form-row">
-            <label>RIR</label>
-            <input inputmode="numeric" type="number" step="1" value="${escapeAttr(set.rir)}"
-              data-action="qs-set-rir" data-ex="${ex.id}" data-set="${set.id}" />
-          </div>
-        </div>
-      </div>
-    `).join("");
-
-    const videoBtn = ex.videoUrl
-      ? `<button class="secondary-btn" type="button"
-            data-video-url="${escapeAttr(ex.videoUrl)}"
-            data-video-title="${escapeAttr(ex.name)}">Video</button>`
-      : "";
-
-    const div = document.createElement("div");
-    div.className = "item";
-    div.innerHTML = `
-      <div class="item-head">
-        <div>
-          <div class="item-title">${escapeHtml(ex.name)}</div>
-          <div class="item-sub">${escapeHtml(ex.notes || "")}</div>
-        </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
-          ${videoBtn}
-          <button class="secondary-btn" type="button" data-action="qs-add-set" data-ex="${ex.id}">+ Set</button>
-          <button class="secondary-btn danger" type="button" data-action="qs-del-ex" data-ex="${ex.id}">Remove</button>
-        </div>
-      </div>
-
-      <div style="margin-top:10px">
-        <div class="grid-2">
-          <div class="form-row">
-            <label>Exercise name</label>
-            <input type="text" value="${escapeAttr(ex.name)}" data-action="qs-ex-name" data-ex="${ex.id}" />
-          </div>
-          <div class="form-row">
-            <label>Notes</label>
-            <input type="text" value="${escapeAttr(ex.notes || "")}" data-action="qs-ex-notes" data-ex="${ex.id}" />
-          </div>
-        </div>
-
-        <div class="grid-2" style="margin-top:10px">
-          <div class="form-row">
-            <label>Video URL (optional)</label>
-            <input type="url" value="${escapeAttr(ex.videoUrl || "")}" data-action="qs-ex-video" data-ex="${ex.id}" />
-          </div>
-          <div class="form-row">
-            <label></label>
-            <div class="muted small">Add a YouTube link to enable the Video button.</div>
-          </div>
-        </div>
-      </div>
-
-      ${setsHtml}
-    `;
-    list.appendChild(div);
+function setFooterNav(active){
+  const wrap = document.getElementById("footerWrap");
+  const items = [
+    {id:"home", label:"Home", ico:"🏠", on:homeView},
+    {id:"history", label:"History", ico:"🗓️", on:historyView},
+    {id:"exercises", label:"Exercises", ico:"🏋️", on:exercisesView},
+    {id:"tracker", label:"Tracker", ico:"📈", on:trackerView},
+    {id:"export", label:"Export", ico:"⬇️", on:exportView}
+  ];
+  wrap.innerHTML = items.map(x=>`
+    <button class="navbtn ${active===x.id?"active":""}" data-nav="${x.id}">
+      <div class="ico">${x.ico}</div>
+      <div>${x.label}</div>
+    </button>
+  `).join("");
+  wrap.querySelectorAll("[data-nav]").forEach(b=>{
+    b.onclick = ()=>{
+      stopTimer();
+      const id=b.dataset.nav;
+      const item=items.find(x=>x.id===id);
+      if(item) item.on();
+      setFooterNav(id);
+    };
   });
 }
-
-function renderTemplates() {
-  const list = $("#templatesList");
-  list.innerHTML = "";
-
-  if (!state.templates.length) {
-    list.innerHTML = `<div class="item"><div class="item-title">No templates yet</div><div class="item-sub">Create one above.</div></div>`;
-    return;
-  }
-
-  state.templates.slice().sort((a,b)=> (a.name||"").localeCompare(b.name||"")).forEach(t => {
-    const div = document.createElement("div");
-    div.className = "item";
-    div.innerHTML = `
-      <div class="item-head">
-        <div>
-          <div class="item-title">${escapeHtml(t.name)}</div>
-          <div class="item-sub">${(t.exercises?.length||0)} exercises</div>
-        </div>
-        <div style="display:flex; gap:8px;">
-          <button class="secondary-btn" type="button" data-action="tpl-use" data-id="${t.id}">Use</button>
-          <button class="secondary-btn danger" type="button" data-action="tpl-del" data-id="${t.id}">Delete</button>
-        </div>
-      </div>
-    `;
-    list.appendChild(div);
+function setFooterActions(actions){
+  const wrap = document.getElementById("footerWrap");
+  wrap.innerHTML = actions.map((a,i)=>`<button class="btn ${a.cls||"ghost"}" data-foot="${i}">${a.label}</button>`).join("");
+  wrap.querySelectorAll("[data-foot]").forEach(btn=>{
+    btn.onclick = ()=> actions[Number(btn.dataset.foot)].onClick();
   });
 }
+function pct(n,t){ if(!t) return 0; return Math.max(0, Math.min(100, (n/t)*100)); }
 
-function renderTemplatePickList() {
-  const list = $("#tplPickList");
-  list.innerHTML = "";
+/* Home */
+function homeView(){
+  TEMPLATES = loadTemplates();
+  setPill("Ready");
 
-  if (!state.templates.length) {
-    list.innerHTML = `<div class="item"><div class="item-title">No templates yet</div><div class="item-sub">Create one in Workouts first.</div></div>`;
-    return;
-  }
+  const stats=computeStats();
+  const lastText = stats.last? fmtDate(stats.last) : "—";
+  const wStreak = calcWorkoutStreak();
+  const mStreak = calcMacrosStreak();
 
-  state.templates.slice().sort((a,b)=> (a.name||"").localeCompare(b.name||"")).forEach(t => {
-    const div = document.createElement("div");
-    div.className = "item";
-    div.innerHTML = `
-      <div class="item-head">
-        <div>
-          <div class="item-title">${escapeHtml(t.name)}</div>
-          <div class="item-sub">${(t.exercises?.length||0)} exercises</div>
-        </div>
-        <button class="secondary-btn" type="button" data-action="tpl-pick" data-id="${t.id}">Select</button>
+  const macrosAll = loadMacros();
+  const d=todayYMD();
+  const today = macrosAll[d] || { calories:"", protein:"", carbs:"", fat:"" };
+  const cal=Number(today.calories)||0, p=Number(today.protein)||0, c=Number(today.carbs)||0, f=Number(today.fat)||0;
+
+  const tr = loadTracker();
+  const weightsSorted = (tr.weights||[]).slice().sort((a,b)=>(a.date>b.date?1:-1));
+  const last7 = weightsSorted.slice(-7).map(x=>Number(x.kg)||0).filter(x=>x>0);
+  const last7Avg = last7.length ? avg(last7) : 0;
+
+  view.innerHTML = `
+    <div class="card">
+      <h2>Dashboard</h2>
+      <div class="hr"></div>
+      <div class="list">
+        <div class="exercise"><div class="exercise-name">${stats.total}</div><div class="exercise-meta">sessions logged</div></div>
+        <div class="exercise"><div class="exercise-name">${lastText}</div><div class="exercise-meta">last session</div></div>
+        <div class="exercise"><div class="exercise-name">${wStreak} 🔥</div><div class="exercise-meta">workout streak</div></div>
+        <div class="exercise"><div class="exercise-name">${mStreak} ✅</div><div class="exercise-meta">macros streak</div></div>
+        <div class="exercise"><div class="exercise-name">${last7Avg? last7Avg.toFixed(1) : "—"}</div><div class="exercise-meta">7-day avg weight</div></div>
       </div>
-    `;
-    list.appendChild(div);
-  });
-}
+    </div>
 
-function renderLog(filter = "") {
-  const list = $("#logList");
-  list.innerHTML = "";
-  const q = filter.trim().toLowerCase();
-
-  const sessions = state.sessions
-    .slice()
-    .sort((a,b)=> (b.date||"").localeCompare(a.date||""))
-    .filter(s => {
-      if (!q) return true;
-      const inSession = (s.name||"").toLowerCase().includes(q) || (s.notes||"").toLowerCase().includes(q) || (s.date||"").includes(q);
-      const inEx = (s.exercises||[]).some(ex => (ex.name||"").toLowerCase().includes(q));
-      return inSession || inEx;
-    });
-
-  if (!sessions.length) {
-    list.innerHTML = `<div class="item"><div class="item-title">No sessions found</div><div class="item-sub">Try a different search.</div></div>`;
-    return;
-  }
-
-  sessions.forEach(s => {
-    const exCount = s.exercises?.length || 0;
-    const setCount = (s.exercises || []).reduce((acc, ex) => acc + (ex.sets?.length || 0), 0);
-    const div = document.createElement("div");
-    div.className = "item";
-    div.innerHTML = `
-      <div class="item-head">
-        <div>
-          <div class="item-title">${escapeHtml(s.name)}</div>
-          <div class="item-sub">${escapeHtml(s.date)} • ${exCount} exercises • ${setCount} sets</div>
-        </div>
-        <button class="secondary-btn" type="button" data-action="open-session" data-id="${s.id}">View</button>
+    <div class="section-title">Start Workout</div>
+    <div class="card">
+      <div class="grid">
+        ${TEMPLATES.map(t=>`
+          <button class="btn primary" data-start="${t.id}">
+            ${escapeHtml(t.name)}<span class="tag">${escapeHtml(t.subtitle||"")}</span>
+          </button>
+        `).join("")}
       </div>
-    `;
-    list.appendChild(div);
-  });
-}
+      <div class="hr"></div>
+      <button class="btn" id="btnTemplateEditor">Edit Templates</button>
+    </div>
 
-function renderSessionDetail(sessionId) {
-  const card = $("#sessionDetailCard");
-  const s = state.sessions.find(x => x.id === sessionId);
-  if (!s) { card.style.display = "none"; return; }
-
-  card.style.display = "block";
-  $("#detailTitle").textContent = s.name || "Session";
-  $("#detailMeta").textContent = `${s.date} • ${(s.exercises?.length||0)} exercises`;
-  $("#detailNotes").textContent = s.notes || "";
-  $("#btnDeleteSession").setAttribute("data-session", s.id);
-
-  const list = $("#detailExercises");
-  list.innerHTML = "";
-
-  const units = state.settings.units || "kg";
-
-  (s.exercises || []).forEach(ex => {
-    const div = document.createElement("div");
-    div.className = "item";
-
-    const videoBtn = ex.videoUrl
-      ? `<button class="secondary-btn" type="button"
-            data-video-url="${escapeAttr(ex.videoUrl)}"
-            data-video-title="${escapeAttr(ex.name)}">Video</button>`
-      : "";
-
-    const sets = (ex.sets || []).map((set, idx) => {
-      const w = set.weight === "" ? "—" : `${set.weight}${units}`;
-      const r = set.reps === "" ? "—" : `${set.reps} reps`;
-      const rir = set.rir === "" ? "" : ` • RIR ${set.rir}`;
-      return `<div class="item-sub">Set ${idx+1}: ${escapeHtml(w)} • ${escapeHtml(r)}${escapeHtml(rir)}</div>`;
-    }).join("");
-
-    div.innerHTML = `
-      <div class="item-head">
-        <div>
-          <div class="item-title">${escapeHtml(ex.name)}</div>
-          ${ex.notes ? `<div class="item-sub">${escapeHtml(ex.notes)}</div>` : ""}
-        </div>
-        ${videoBtn}
+    <div class="section-title">Today's Macros</div>
+    <div class="card">
+      <div class="grid">
+        <input class="input" id="mCal" inputmode="numeric" placeholder="Calories" value="${escapeAttr(today.calories)}">
+        <input class="input" id="mP" inputmode="numeric" placeholder="Protein (g)" value="${escapeAttr(today.protein)}">
+        <input class="input" id="mC" inputmode="numeric" placeholder="Carbs (g)" value="${escapeAttr(today.carbs)}">
+        <input class="input" id="mF" inputmode="numeric" placeholder="Fat (g)" value="${escapeAttr(today.fat)}">
       </div>
-      <div style="margin-top:8px">${sets || `<div class="item-sub">No sets logged</div>`}</div>
-    `;
+      <div style="height:10px"></div>
+      <button class="btn primary" id="saveMacrosBtn">Save Today</button>
 
-    list.appendChild(div);
-  });
+      <div class="hr"></div>
+      <div class="exercise">
+        <div class="exercise-name">Progress</div>
+        <div class="exercise-meta">Calories: ${cal}/${MACRO_TARGETS.calories}</div>
+        <div class="bar"><div style="width:${pct(cal,MACRO_TARGETS.calories).toFixed(0)}%"></div></div>
 
-  card.scrollIntoView({ behavior: "smooth", block: "start" });
-}
+        <div style="height:10px"></div>
+        <div class="exercise-meta">Protein: ${p}/${MACRO_TARGETS.protein}</div>
+        <div class="bar"><div style="width:${pct(p,MACRO_TARGETS.protein).toFixed(0)}%"></div></div>
 
-function renderVideos() {
-  const list = $("#videosList");
-  list.innerHTML = "";
+        <div style="height:10px"></div>
+        <div class="exercise-meta">Carbs: ${c}/${MACRO_TARGETS.carbs}</div>
+        <div class="bar"><div style="width:${pct(c,MACRO_TARGETS.carbs).toFixed(0)}%"></div></div>
 
-  if (!state.videos.length) {
-    list.innerHTML = `<div class="item"><div class="item-title">No videos yet</div><div class="item-sub">Add one above.</div></div>`;
-    return;
-  }
-
-  state.videos.forEach(v => {
-    const div = document.createElement("div");
-    div.className = "item";
-    div.innerHTML = `
-      <div class="item-head">
-        <div>
-          <div class="item-title">${escapeHtml(v.title)}</div>
-          <div class="item-sub">${escapeHtml(v.url)}</div>
-        </div>
-        <div style="display:flex; gap:8px;">
-          <button class="secondary-btn" type="button" data-video-url="${escapeAttr(v.url)}" data-video-title="${escapeAttr(v.title)}">Open</button>
-          <button class="secondary-btn danger" type="button" data-action="vid-del" data-id="${v.id}">Delete</button>
-        </div>
+        <div style="height:10px"></div>
+        <div class="exercise-meta">Fat: ${f}/${MACRO_TARGETS.fat}</div>
+        <div class="bar"><div style="width:${pct(f,MACRO_TARGETS.fat).toFixed(0)}%"></div></div>
       </div>
-    `;
-    list.appendChild(div);
-  });
+    </div>
+  `;
+
+  view.querySelectorAll("[data-start]").forEach(btn=>btn.onclick=()=>startWorkout(btn.dataset.start));
+  document.getElementById("btnTemplateEditor").onclick = templatesView;
+
+  document.getElementById("saveMacrosBtn").onclick = ()=>{
+    const m=loadMacros();
+    m[d] = {
+      calories: Number(document.getElementById("mCal").value)||0,
+      protein:  Number(document.getElementById("mP").value)||0,
+      carbs:    Number(document.getElementById("mC").value)||0,
+      fat:      Number(document.getElementById("mF").value)||0
+    };
+    saveMacros(m);
+    toast("Macros saved ✅");
+    homeView();
+  };
+
+  setFooterNav("home");
 }
 
-function renderSettings() {
-  $("#setName").value = state.settings.name || "";
-  $("#setDefaultSession").value = state.settings.defaultSession || "";
-  $("#setUnits").value = state.settings.units || "kg";
-  $("#setWeekStart").value = state.settings.weekStart || "mon";
+/* Tracker */
+function trackerView(){
+  setPill("Tracker");
+  const t=loadTracker();
+  const d=todayYMD();
+
+  const weightsSorted=(t.weights||[]).slice().sort((a,b)=>(a.date>b.date?1:-1));
+  const waistsSorted=(t.waists||[]).slice().sort((a,b)=>(a.date>b.date?1:-1));
+  const lastW=weightsSorted.slice(-1)[0];
+  const lastWaist=waistsSorted.slice(-1)[0];
+
+  const last7 = weightsSorted.slice(-7).map(x=>Number(x.kg)||0).filter(x=>x>0);
+  const last7Avg = last7.length ? avg(last7) : 0;
+
+  view.innerHTML = `
+    <div class="card">
+      <h2>Cut Tracker</h2>
+      <div class="hr"></div>
+
+      <div class="section-title" style="margin-top:0;">Daily Weight</div>
+      <input class="input" id="wtKg" inputmode="decimal" placeholder="Weight (kg)">
+      <div style="height:10px"></div>
+      <button class="btn primary" id="saveWeight">Save Weight</button>
+      <div class="hr"></div>
+      <div class="exercise-meta">Last: <b>${lastW ? (lastW.kg + " kg ("+lastW.date+")") : "—"}</b></div>
+      <div class="exercise-meta">7-day avg: <b>${last7Avg ? last7Avg.toFixed(1) : "—"}</b></div>
+
+      <div class="hr"></div>
+      <div class="section-title">Weekly Waist</div>
+      <input class="input" id="waistCm" inputmode="decimal" placeholder="Waist (cm)">
+      <div style="height:10px"></div>
+      <button class="btn primary" id="saveWaist">Save Waist</button>
+      <div class="hr"></div>
+      <div class="exercise-meta">Last: <b>${lastWaist ? (lastWaist.cm + " cm ("+lastWaist.date+")") : "—"}</b></div>
+    </div>
+  `;
+
+  document.getElementById("saveWeight").onclick = ()=>{
+    const kg=Number(document.getElementById("wtKg").value);
+    if(!kg){ alert("Enter weight"); return; }
+    const tt=loadTracker();
+    tt.weights.push({date:d, kg});
+    saveTracker(tt);
+    toast("Weight saved ✅");
+    trackerView();
+  };
+
+  document.getElementById("saveWaist").onclick = ()=>{
+    const cm=Number(document.getElementById("waistCm").value);
+    if(!cm){ alert("Enter waist"); return; }
+    const tt=loadTracker();
+    tt.waists.push({date:d, cm});
+    saveTracker(tt);
+    toast("Waist saved ✅");
+    trackerView();
+  };
+
+  setFooterNav("tracker");
 }
 
-function renderAll() {
-  renderDashboard();
-  renderQuickForm();
-  renderTemplates();
-  renderTemplatePickList();
-  renderLog($("#logSearch")?.value || "");
-  renderVideos();
-  renderSettings();
-}
+/* Workout flow */
+function startWorkout(templateId){
+  TEMPLATES=loadTemplates();
+  const tpl=TEMPLATES.find(t=>t.id===templateId);
+  if(!tpl) return;
 
-/* -------------------------
-   Template draft builder
-------------------------- */
-let tplDraft = [];
-
-function renderTplPreview() {
-  const list = $("#tplExercisesPreview");
-  list.innerHTML = "";
-
-  if (!tplDraft.length) {
-    list.innerHTML = `<div class="item"><div class="item-title">No exercises added</div><div class="item-sub">Add exercises above.</div></div>`;
-    return;
-  }
-
-  tplDraft.forEach(ex => {
-    const hasVideo = ex.videoUrl ? " • video ✅" : "";
-    const div = document.createElement("div");
-    div.className = "item";
-    div.innerHTML = `
-      <div class="item-head">
-        <div>
-          <div class="item-title">${escapeHtml(ex.name)}</div>
-          <div class="item-sub">${escapeHtml(ex.defaultSets)} sets • ${escapeHtml(ex.defaultReps)} reps • rest ${escapeHtml(ex.defaultRest)}s${hasVideo}</div>
-        </div>
-        <button class="secondary-btn danger" type="button" data-action="tpl-draft-del" data-id="${ex.id}">Remove</button>
-      </div>
-    `;
-    list.appendChild(div);
-  });
-}
-
-/* -------------------------
-   Init
-------------------------- */
-function init() {
-  $("#qsDate").value = todayISO();
-  $("#qsName").value = state.settings.defaultSession || "";
-  $("#todayPill").textContent = todayISO();
-  resetQuickDraft();
-  renderTplPreview();
-  renderAll();
-  showScreen("dashboard");
-}
-init();
-
-/* -------------------------
-   NAV
-------------------------- */
-document.addEventListener("click", (e) => {
-  const nav = e.target.closest(".nav-btn");
-  if (!nav) return;
-  showScreen(nav.dataset.nav);
-});
-
-/* -------------------------
-   Dashboard buttons
-------------------------- */
-$("#btnGoLog").addEventListener("click", () => showScreen("log"));
-$("#btnNewFromTemplate").addEventListener("click", () => { renderTemplatePickList(); openModal("tplModal"); });
-$("#btnNewFromTemplateDash").addEventListener("click", () => { renderTemplatePickList(); openModal("tplModal"); });
-
-/* -------------------------
-   Quick inputs
-------------------------- */
-$("#qsDate").addEventListener("change", () => quickDraft.date = $("#qsDate").value || todayISO());
-$("#qsName").addEventListener("input", () => quickDraft.name = clampStr($("#qsName").value, 80));
-$("#qsNotes").addEventListener("input", () => quickDraft.notes = clampStr($("#qsNotes").value, 2000));
-
-$("#btnAddExerciseToQuick").addEventListener("click", () => {
-  quickDraft.exercises.push({
-    id: uid(),
-    name: "New Exercise",
+  activeWorkout={
+    id: crypto.randomUUID(),
+    templateId: tpl.id,
+    name: tpl.name,
+    subtitle: tpl.subtitle||"",
+    startedAt: nowISO(),
     notes: "",
-    videoUrl: "",
-    sets: [{ id: uid(), weight: "", reps: "", rir: "" }]
-  });
-  renderQuickExercises();
-});
-
-/* Delegated inputs for quick exercises/sets */
-document.addEventListener("input", (e) => {
-  const a = e.target.getAttribute("data-action");
-  if (!a) return;
-
-  const exId = e.target.getAttribute("data-ex");
-  const setId = e.target.getAttribute("data-set");
-  const ex = quickDraft.exercises.find(x => x.id === exId);
-  if (!ex) return;
-
-  if (a === "qs-ex-name") ex.name = clampStr(e.target.value, 80);
-  if (a === "qs-ex-notes") ex.notes = clampStr(e.target.value, 200);
-  if (a === "qs-ex-video") ex.videoUrl = clampStr(e.target.value, 500);
-
-  const set = ex.sets.find(s => s.id === setId);
-
-  if (a === "qs-set-weight" && set) set.weight = e.target.value;
-  if (a === "qs-set-reps" && set) set.reps = e.target.value;
-  if (a === "qs-set-rir" && set) set.rir = e.target.value;
-});
-
-document.addEventListener("click", (e) => {
-  const a = e.target.getAttribute("data-action");
-  if (!a) return;
-
-  if (a === "qs-add-set") {
-    const exId = e.target.getAttribute("data-ex");
-    const ex = quickDraft.exercises.find(x => x.id === exId);
-    if (!ex) return;
-    ex.sets.push({ id: uid(), weight: "", reps: "", rir: "" });
-    renderQuickExercises();
-  }
-
-  if (a === "qs-del-ex") {
-    const exId = e.target.getAttribute("data-ex");
-    quickDraft.exercises = quickDraft.exercises.filter(x => x.id !== exId);
-    renderQuickExercises();
-  }
-
-  if (a === "qs-del-set") {
-    const exId = e.target.getAttribute("data-ex");
-    const setId = e.target.getAttribute("data-set");
-    const ex = quickDraft.exercises.find(x => x.id === exId);
-    if (!ex) return;
-    ex.sets = ex.sets.filter(s => s.id !== setId);
-    renderQuickExercises();
-  }
-});
-
-/* Save session */
-$("#quickSessionForm").addEventListener("submit", (e) => {
-  e.preventDefault();
-
-  const date = $("#qsDate").value;
-  const name = ($("#qsName").value || "").trim();
-  if (!date || !name) return;
-
-  const session = {
-    id: uid(),
-    date,
-    name: clampStr(name, 80),
-    notes: clampStr($("#qsNotes").value || "", 2000),
-    exercises: quickDraft.exercises.map(ex => ({
-      id: uid(),
-      name: clampStr(ex.name, 80),
-      notes: clampStr(ex.notes || "", 200),
-      videoUrl: clampStr(ex.videoUrl || "", 500),
-      sets: (ex.sets || []).map(s => ({
-        id: uid(),
-        weight: s.weight ?? "",
-        reps: s.reps ?? "",
-        rir: s.rir ?? ""
-      }))
+    exercises: (tpl.exercises||[]).map(ex=>({
+      id: ex.id,
+      name: ex.name,
+      targetSets: Number(ex.sets)||0,
+      targetReps: ex.reps||"",
+      rest: Number(ex.rest)||60,
+      videoSearch: ex.videoSearch||"",
+      note: "",
+      sets: []
     }))
   };
 
-  state.sessions.push(session);
-  saveState();
+  sessionStorage.setItem("steadylog.draft", JSON.stringify(activeWorkout));
+  workoutView();
+  toast(`${tpl.name} started`);
+}
+function saveDraft(){ sessionStorage.setItem("steadylog.draft", JSON.stringify(activeWorkout)); }
+function addSet(exIndex){
+  const ex=activeWorkout.exercises[exIndex];
+  ex.sets.push({ kg:getSuggestedKg(ex.id), reps:"", done:false });
+  saveDraft();
+  workoutView();
+}
+function updateSet(exIndex,setIndex,field,value){
+  const s=activeWorkout.exercises[exIndex].sets[setIndex];
+  s[field] = (value==="" ? "" : Number(value));
+  saveDraft();
+}
+function updateSessionNotes(v){ activeWorkout.notes=v; saveDraft(); }
+function updateExerciseNote(exIndex,v){ activeWorkout.exercises[exIndex].note=v; saveDraft(); }
+function toggleDone(exIndex,setIndex){
+  const s=activeWorkout.exercises[exIndex].sets[setIndex];
+  s.done=!s.done;
+  saveDraft();
+  workoutView();
+  if(s.done){
+    const rest = Number(activeWorkout.exercises[exIndex].rest)||60;
+    startTimer(rest);
+  }
+}
+function deleteSet(exIndex,setIndex){
+  activeWorkout.exercises[exIndex].sets.splice(setIndex,1);
+  saveDraft();
+  workoutView();
+}
+function workoutView(){
+  setPill("In session");
+  view.innerHTML = `
+    <div class="card">
+      <h2>${escapeHtml(activeWorkout.name)}<span class="tag">${escapeHtml(activeWorkout.subtitle||"")}</span></h2>
+      <div class="exercise-meta">Started: ${fmtDate(activeWorkout.startedAt)}</div>
+      <div class="hr"></div>
 
-  $("#qsNotes").value = "";
-  resetQuickDraft();
-  $("#qsDate").value = todayISO();
-  $("#qsName").value = state.settings.defaultSession || "";
-  quickDraft.date = $("#qsDate").value;
-  quickDraft.name = $("#qsName").value;
+      <div class="section-title" style="margin-top:0;">Session Notes</div>
+      <textarea id="sessionNotes" class="input" style="min-height:64px; resize:vertical;" placeholder="Notes (optional)">${escapeHtml(activeWorkout.notes||"")}</textarea>
 
-  renderAll();
-  showScreen("log");
-});
+      <div class="hr"></div>
 
-/* -------------------------
-   Templates
-------------------------- */
-renderTplPreview();
+      <div class="list">
+        ${activeWorkout.exercises.map((ex,idx)=>{
+          const last=getLastSetsForExercise(ex.id);
+          const lastStr = last.length ? last.slice(0,3).map(s=>`${s.kg}kg×${s.reps}`).join(", ") : "—";
+          const rest = Number(ex.rest)||60;
 
-$("#btnTplAddExercise").addEventListener("click", () => {
-  const name = ($("#tplExName").value || "").trim();
-  if (!name) return;
+          return `
+          <div class="exercise">
+            <div class="exercise-head">
+              <div style="flex:1">
+                <div class="exercise-name">${escapeHtml(ex.name)}</div>
+                <div class="exercise-meta">🎯 ${ex.targetSets} sets • ${escapeHtml(ex.targetReps)} • Rest: ${rest}s • Last: ${escapeHtml(lastStr)}</div>
+              </div>
+              <div style="display:flex; gap:8px; align-items:center">
+                <button class="btn small" style="width:auto" data-video="${idx}">▶ Video</button>
+                <button class="btn small" style="width:auto" data-add="${idx}">+ Set</button>
+              </div>
+            </div>
 
-  tplDraft.push({
-    id: uid(),
-    name: clampStr(name, 80),
-    notes: clampStr($("#tplExNotes").value || "", 200),
-    videoUrl: clampStr($("#tplExVideo").value || "", 500),
-    defaultSets: Math.max(1, safeNumber($("#tplExSets").value, 3)),
-    defaultReps: clampStr($("#tplExReps").value || "8-12", 30),
-    defaultRest: Math.max(0, safeNumber($("#tplExRest").value, 90))
+            <div style="display:flex; gap:8px; align-items:center; margin-top:10px">
+              <span class="tag">Note</span>
+              <input class="input" style="padding:10px" value="${escapeAttr(ex.note||"")}" placeholder="e.g. slow tempo / drop set" data-exnote="${idx}">
+            </div>
+
+            ${(ex.sets||[]).map((s,sidx)=>`
+              <div class="set">
+                <input class="input" inputmode="decimal" placeholder="KG" value="${s.kg ?? ""}" data-role="kg" data-kg="${idx}:${sidx}">
+                <input class="input" inputmode="numeric" placeholder="Reps" value="${s.reps ?? ""}" data-role="reps" data-reps="${idx}:${sidx}">
+                <button class="smallbtn ok ${s.done?"on":""}" data-role="done" data-done="${idx}:${sidx}">✓</button>
+                <button class="smallbtn del" data-role="del" data-del="${idx}:${sidx}">🗑</button>
+              </div>
+            `).join("")}
+          </div>
+          `;
+        }).join("")}
+      </div>
+    </div>
+  `;
+
+  document.getElementById("sessionNotes").oninput = (e)=>updateSessionNotes(e.target.value);
+
+  view.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>addSet(Number(b.dataset.add)));
+  view.querySelectorAll("[data-video]").forEach(b=>b.onclick=()=>{
+    const ex=activeWorkout.exercises[Number(b.dataset.video)];
+    openVideo(ex.videoSearch, ex.name);
+  });
+  view.querySelectorAll("[data-exnote]").forEach(inp=>inp.oninput=(e)=>updateExerciseNote(Number(inp.dataset.exnote), e.target.value));
+  view.querySelectorAll("[data-kg]").forEach(inp=>inp.oninput=(e)=>{
+    const [i,j]=inp.dataset.kg.split(":").map(Number);
+    updateSet(i,j,"kg", e.target.value);
+  });
+  view.querySelectorAll("[data-reps]").forEach(inp=>inp.oninput=(e)=>{
+    const [i,j]=inp.dataset.reps.split(":").map(Number);
+    updateSet(i,j,"reps", e.target.value);
+  });
+  view.querySelectorAll("[data-done]").forEach(btn=>btn.onclick=()=>{
+    const [i,j]=btn.dataset.done.split(":").map(Number);
+    toggleDone(i,j);
+  });
+  view.querySelectorAll("[data-del]").forEach(btn=>btn.onclick=()=>{
+    const [i,j]=btn.dataset.del.split(":").map(Number);
+    deleteSet(i,j);
   });
 
-  $("#tplExName").value = "";
-  $("#tplExNotes").value = "";
-  $("#tplExVideo").value = "";
-  renderTplPreview();
-});
+  setFooterActions([
+    {label:"Finish & Save", cls:"primary", onClick:finishWorkout},
+    {label:"Rest 60s", cls:"ghost", onClick:()=>startTimer(60)},
+    {label:"Cancel", cls:"danger", onClick:cancelWorkout}
+  ]);
+}
+function finishWorkout(){
+  stopTimer();
+  for(const ex of activeWorkout.exercises){
+    ex.sets = (ex.sets||[]).filter(s=>(Number(s.kg)||0)>0 && (Number(s.reps)||0)>0);
+  }
+  const sessions=loadSessions();
+  sessions.push(activeWorkout);
+  saveSessions(sessions);
+  sessionStorage.removeItem("steadylog.draft");
+  activeWorkout=null;
+  toast("Saved ✅");
+  homeView();
+}
+function cancelWorkout(){
+  stopTimer();
+  if(confirm("Cancel this workout? (Nothing will be saved)")){
+    activeWorkout=null;
+    sessionStorage.removeItem("steadylog.draft");
+    toast("Cancelled");
+    homeView();
+  }
+}
 
-document.addEventListener("click", (e) => {
-  const btn = e.target.closest("[data-action='tpl-draft-del']");
-  if (!btn) return;
-  const id = btn.getAttribute("data-id");
-  tplDraft = tplDraft.filter(x => x.id !== id);
-  renderTplPreview();
-});
+/* History */
+function historyView(){
+  setPill("History");
+  const sessions=loadSessions();
+  view.innerHTML = `
+    <div class="card">
+      <h2>History</h2>
+      <div class="hr"></div>
+      <div class="list">
+        ${sessions.length ? sessions.slice().reverse().map(s=>`
+          <button class="btn" data-open="${s.id}">${escapeHtml(s.name)}<span class="tag">${new Date(s.startedAt).toLocaleDateString()}</span></button>
+        `).join("") : `<div class="exercise"><div class="exercise-meta">No sessions yet.</div></div>`}
+      </div>
+    </div>
+  `;
+  view.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>sessionDetailView(b.dataset.open));
+  setFooterNav("history");
+}
+function sessionDetailView(id){
+  const sessions=loadSessions();
+  const s=sessions.find(x=>x.id===id);
+  if(!s){ historyView(); return; }
+  setPill("Session");
+  view.innerHTML = `
+    <div class="card">
+      <h2>${escapeHtml(s.name)}<span class="tag">${escapeHtml(s.subtitle||"")}</span></h2>
+      <div class="exercise-meta">${fmtDate(s.startedAt)}</div>
+      ${s.notes?`<div class="hr"></div><div class="exercise-meta"><b>Notes:</b> ${escapeHtml(s.notes)}</div>`:""}
+      <div class="hr"></div>
+      <div class="list">
+        ${s.exercises.map(ex=>`
+          <div class="exercise">
+            <div class="exercise-name">${escapeHtml(ex.name)}</div>
+            <div class="exercise-meta">🎯 ${ex.targetSets} • ${escapeHtml(ex.targetReps)} • Rest: ${ex.rest}s</div>
+            ${ex.note?`<div class="exercise-meta"><b>Note:</b> ${escapeHtml(ex.note)}</div>`:""}
+            <div class="hr"></div>
+            <div class="exercise-meta">${(ex.sets||[]).map(st=>`${st.kg}kg×${st.reps}`).join(" • ") || "—"}</div>
+          </div>
+        `).join("")}
+      </div>
+      <div class="hr"></div>
+      <button class="btn danger" id="delSes">Delete session</button>
+      <div style="height:10px"></div>
+      <button class="btn" id="backHist">Back</button>
+    </div>
+  `;
+  document.getElementById("backHist").onclick = historyView;
+  document.getElementById("delSes").onclick = ()=>{
+    if(confirm("Delete this session permanently?")){
+      saveSessions(sessions.filter(x=>x.id!==id));
+      toast("Deleted");
+      historyView();
+    }
+  };
+}
 
-$("#templateForm").addEventListener("submit", (e) => {
-  e.preventDefault();
-  const name = ($("#tplName").value || "").trim();
-  if (!name) return;
+/* Exercises */
+function exercisesView(){
+  setPill("Exercises");
+  const stats = computeStats();
 
-  state.templates.push({
-    id: uid(),
-    name: clampStr(name, 80),
-    exercises: tplDraft.map(ex => ({ ...ex, id: uid() }))
+  const exMap = new Map();
+  for(const t of loadTemplates()){
+    for(const ex of (t.exercises||[])) exMap.set(ex.id, ex.name);
+  }
+  const exList = Array.from(exMap.entries()).map(([id,name])=>({id,name})).sort((a,b)=>a.name.localeCompare(b.name));
+
+  view.innerHTML = `
+    <div class="card">
+      <h2>Exercises</h2>
+      <div class="hr"></div>
+      <div class="list">
+        ${exList.map(ex=>{
+          const best = stats.best[ex.id];
+          const bestStr = best ? `${best.kg}kg×${best.reps}` : "—";
+          return `<button class="btn" data-ex="${ex.id}">${escapeHtml(ex.name)}<span class="tag">Best: ${escapeHtml(bestStr)}</span></button>`;
+        }).join("")}
+      </div>
+      <div class="hr"></div>
+      <button class="btn" id="editTplFromEx">Edit Templates</button>
+    </div>`;
+  view.querySelectorAll("[data-ex]").forEach(b=>b.onclick=()=>exerciseDetailView(b.dataset.ex));
+  document.getElementById("editTplFromEx").onclick = templatesView;
+  setFooterNav("exercises");
+}
+function exerciseDetailView(exId){
+  const sessions=loadSessions();
+  const entries=[];
+  let name=exId;
+  for(const ses of sessions){
+    for(const ex of ses.exercises){
+      if(ex.id===exId){
+        name=ex.name;
+        for(const st of (ex.sets||[])) entries.push({at:ses.startedAt, kg:st.kg, reps:st.reps});
+      }
+    }
+  }
+  entries.sort((a,b)=> new Date(b.at)-new Date(a.at));
+  const best = entries.reduce((acc,cur)=>{
+    if(!acc) return cur;
+    if(cur.kg>acc.kg) return cur;
+    if(cur.kg===acc.kg && cur.reps>acc.reps) return cur;
+    return acc;
+  }, null);
+  const recent = entries.slice(0,12);
+
+  setPill("Exercise");
+  view.innerHTML = `
+    <div class="card">
+      <h2>${escapeHtml(name)}</h2>
+      <div class="exercise-meta">Best: ${best?`${best.kg}kg×${best.reps}`:"—"}</div>
+      <div class="hr"></div>
+      <div class="section-title" style="margin-top:0;">Recent Progress</div>
+      <div class="list">
+        ${recent.length ? recent.map(e=>`
+          <div class="exercise"><div class="exercise-name">${e.kg}kg × ${e.reps}</div><div class="exercise-meta">${new Date(e.at).toLocaleDateString()}</div></div>
+        `).join("") : `<div class="exercise"><div class="exercise-meta">No logs yet for this exercise.</div></div>`}
+      </div>
+      <div class="hr"></div>
+      <button class="btn" id="backEx">Back</button>
+    </div>`;
+  document.getElementById("backEx").onclick = exercisesView;
+}
+
+/* Export */
+function trackerToCSV(t){
+  const rows = [];
+  rows.push("type,date,value");
+  (t.weights||[]).forEach(w=>rows.push(`weight,${w.date},${w.kg}`));
+  (t.waists||[]).forEach(w=>rows.push(`waist,${w.date},${w.cm}`));
+  return rows.join("\n");
+}
+function macrosToCSV(m){
+  const rows=[["date","calories","protein","carbs","fat"]];
+  Object.keys(m).sort().forEach(d=>{
+    const r=m[d]||{};
+    rows.push([d, r.calories||0, r.protein||0, r.carbs||0, r.fat||0]);
   });
-
-  tplDraft = [];
-  $("#tplName").value = "";
-  renderTplPreview();
-  saveState();
-  renderAll();
-});
-
-document.addEventListener("click", (e) => {
-  const useBtn = e.target.closest("[data-action='tpl-use']");
-  if (useBtn) {
-    const id = useBtn.getAttribute("data-id");
-    const tpl = state.templates.find(t => t.id === id);
-    if (!tpl) return;
-
-    showScreen("dashboard");
-    $("#qsName").value = tpl.name;
-    quickDraft.name = tpl.name;
-
-    quickDraft.exercises = (tpl.exercises || []).map(ex => {
-      const sets = [];
-      for (let i = 0; i < Math.max(1, safeNumber(ex.defaultSets, 3)); i++) {
-        sets.push({ id: uid(), weight: "", reps: "", rir: "" });
-      }
-      return {
-        id: uid(),
-        name: ex.name,
-        notes: ex.notes || "",
-        videoUrl: ex.videoUrl || "",
-        sets
-      };
-    });
-
-    renderQuickExercises();
-    return;
-  }
-
-  const delBtn = e.target.closest("[data-action='tpl-del']");
-  if (delBtn) {
-    const id = delBtn.getAttribute("data-id");
-    state.templates = state.templates.filter(t => t.id !== id);
-    saveState();
-    renderAll();
-    return;
-  }
-
-  const pickBtn = e.target.closest("[data-action='tpl-pick']");
-  if (pickBtn) {
-    const id = pickBtn.getAttribute("data-id");
-    const tpl = state.templates.find(t => t.id === id);
-    if (!tpl) return;
-
-    closeModal("tplModal");
-    showScreen("dashboard");
-    $("#qsName").value = tpl.name;
-    quickDraft.name = tpl.name;
-
-    quickDraft.exercises = (tpl.exercises || []).map(ex => {
-      const sets = [];
-      for (let i = 0; i < Math.max(1, safeNumber(ex.defaultSets, 3)); i++) {
-        sets.push({ id: uid(), weight: "", reps: "", rir: "" });
-      }
-      return {
-        id: uid(),
-        name: ex.name,
-        notes: ex.notes || "",
-        videoUrl: ex.videoUrl || "",
-        sets
-      };
-    });
-
-    renderQuickExercises();
-  }
-});
-
-/* -------------------------
-   Log actions
-------------------------- */
-document.addEventListener("click", (e) => {
-  const openBtn = e.target.closest("[data-action='open-session']");
-  if (!openBtn) return;
-  const id = openBtn.getAttribute("data-id");
-  showScreen("log");
-  renderSessionDetail(id);
-});
-
-$("#btnCloseDetail").addEventListener("click", () => { $("#sessionDetailCard").style.display = "none"; });
-
-$("#btnDeleteSession").addEventListener("click", () => {
-  const id = $("#btnDeleteSession").getAttribute("data-session");
-  if (!id) return;
-  const ok = confirm("Delete this session? This cannot be undone.");
-  if (!ok) return;
-  state.sessions = state.sessions.filter(s => s.id !== id);
-  saveState();
-  $("#sessionDetailCard").style.display = "none";
-  renderAll();
-});
-
-$("#logSearch").addEventListener("input", (e) => renderLog(e.target.value));
-$("#btnClearSearch").addEventListener("click", () => { $("#logSearch").value = ""; renderLog(""); });
-
-/* -------------------------
-   Videos library
-------------------------- */
-$("#videoAddForm").addEventListener("submit", (e) => {
-  e.preventDefault();
-  const title = ($("#vidTitle").value || "").trim();
-  const url = ($("#vidUrl").value || "").trim();
-  if (!title || !url) return;
-
-  state.videos.push({ id: uid(), title: clampStr(title, 120), url: clampStr(url, 500) });
-  saveState();
-
-  $("#vidTitle").value = "";
-  $("#vidUrl").value = "";
-  renderVideos();
-});
-
-document.addEventListener("click", (e) => {
-  const del = e.target.closest("[data-action='vid-del']");
-  if (!del) return;
-  const id = del.getAttribute("data-id");
-  state.videos = state.videos.filter(v => v.id !== id);
-  saveState();
-  renderVideos();
-});
-
-/* -------------------------
-   Settings
-------------------------- */
-$("#btnSaveSettings").addEventListener("click", () => {
-  state.settings.name = clampStr($("#setName").value || "", 40);
-  state.settings.defaultSession = clampStr($("#setDefaultSession").value || "", 80);
-  state.settings.units = $("#setUnits").value || "kg";
-  state.settings.weekStart = $("#setWeekStart").value || "mon";
-  saveState();
-
-  if (!($("#qsName").value || "").trim() && state.settings.defaultSession) {
-    $("#qsName").value = state.settings.defaultSession;
-    quickDraft.name = state.settings.defaultSession;
-  }
-
-  renderAll();
-  showScreen("dashboard");
-});
-
-/* -------------------------
-   Export / Import / Reset
-------------------------- */
-$("#btnExport").addEventListener("click", () => {
-  const payload = { exportedAt: new Date().toISOString(), app: "steadylog", version: 1, data: state };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  return rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(",")).join("\n");
+}
+function downloadText(filename, text, mime="text/plain"){
+  const blob = new Blob([text], {type:mime+";charset=utf-8"});
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "steady-log-backup.json";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-});
-
-$("#btnImport").addEventListener("click", () => $("#fileImport").click());
-
-$("#fileImport").addEventListener("change", async (e) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
-
-  try {
-    const text = await file.text();
-    const parsed = JSON.parse(text);
-    const incoming = parsed?.data ? parsed.data : parsed;
-
-    const ok = confirm("Import backup and overwrite current data on this device?");
-    if (!ok) return;
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(incoming));
-    state = loadState();
-    saveState();
-
-    $("#fileImport").value = "";
-    resetQuickDraft();
-    renderAll();
-    showScreen("dashboard");
-  } catch {
-    alert("Import failed. Make sure it's a valid Steady Log JSON backup.");
+  const a=document.createElement("a");
+  a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function downloadCSV(sessions){
+  const rows=[["date","workout","exercise","set_index","kg","reps","session_notes","exercise_note"]];
+  for(const ses of sessions){
+    for(const ex of ses.exercises){
+      (ex.sets||[]).forEach((st,idx)=>{
+        rows.push([ses.startedAt,ses.name,ex.name,String(idx+1),String(st.kg),String(st.reps),ses.notes||"",ex.note||""]);
+      });
+    }
   }
-});
+  const csv = rows.map(r=> r.map(v=> `"${String(v).replaceAll('"','""')}"`).join(",")).join("\n");
+  downloadText(`steady-log-${new Date().toISOString().slice(0,10)}.csv`, csv, "text/csv");
+  toast("Workout CSV downloaded ✅");
+}
+function exportView(){
+  setPill("Export");
+  view.innerHTML = `
+    <div class="card">
+      <h2>Export</h2>
+      <div class="exercise-meta">Download backups.</div>
+      <div class="hr"></div>
 
-$("#btnReset").addEventListener("click", () => {
-  const ok = confirm("Reset ALL Steady Log data on this device? This cannot be undone.");
-  if (!ok) return;
+      <button class="btn primary" id="btnCsv">Download Workout CSV</button>
+      <button class="btn" id="btnExportTracker">Download Tracker CSV</button>
+      <button class="btn" id="btnExportMacros">Download Macros CSV</button>
 
-  state = structuredClone(defaultState);
-  saveState();
+      <div style="height:10px"></div>
+      <button class="btn danger" id="btnWipe">Wipe all data</button>
+    </div>`;
 
-  tplDraft = [];
-  resetQuickDraft();
+  document.getElementById("btnCsv").onclick = ()=> downloadCSV(loadSessions());
+  document.getElementById("btnExportTracker").onclick = ()=>{
+    const t = loadTracker();
+    downloadText(`steady-tracker-${new Date().toISOString().slice(0,10)}.csv`, trackerToCSV(t), "text/csv");
+    toast("Tracker CSV downloaded ✅");
+  };
+  document.getElementById("btnExportMacros").onclick = ()=>{
+    const m = loadMacros();
+    downloadText(`steady-macros-${new Date().toISOString().slice(0,10)}.csv`, macrosToCSV(m), "text/csv");
+    toast("Macros CSV downloaded ✅");
+  };
 
-  $("#qsDate").value = todayISO();
-  $("#qsName").value = "";
-  $("#qsNotes").value = "";
+  document.getElementById("btnWipe").onclick = ()=>{
+    if(confirm("Wipe ALL Steady Log data from this phone?")){
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(TRACKER_KEY);
+      localStorage.removeItem(MACROS_KEY);
+      localStorage.removeItem(TEMPLATES_KEY);
+      sessionStorage.removeItem("steadylog.draft");
+      toast("Wiped");
+      exportView();
+    }
+  };
+  setFooterNav("export");
+}
 
-  renderTplPreview();
-  renderAll();
-  showScreen("dashboard");
-});
+/* Templates */
+function templatesView(){
+  TEMPLATES = loadTemplates();
+  setPill("Templates");
+  view.innerHTML = `
+    <div class="card">
+      <h2>Edit Templates</h2>
+      <div class="hr"></div>
+      <div class="list">
+        ${TEMPLATES.map(t=>`<button class="btn" data-tpl="${t.id}">${escapeHtml(t.name)}<span class="tag">${escapeHtml(t.subtitle||"")}</span></button>`).join("")}
+      </div>
+      <div class="hr"></div>
+      <button class="btn danger" id="resetTpl">Reset to default</button>
+      <div style="height:10px"></div>
+      <button class="btn" id="backHome">Back</button>
+    </div>`;
+  view.querySelectorAll("[data-tpl]").forEach(b=> b.onclick = ()=> templateEditView(b.dataset.tpl));
+  document.getElementById("backHome").onclick = homeView;
+  document.getElementById("resetTpl").onclick = ()=>{
+    if(confirm("Reset templates to default?")){
+      saveTemplates(DEFAULT_TEMPLATES);
+      toast("Templates reset");
+      templatesView();
+    }
+  };
+}
+function templateEditView(tplId){
+  TEMPLATES = loadTemplates();
+  const idx = TEMPLATES.findIndex(t=>t.id===tplId);
+  if(idx<0){ templatesView(); return; }
+  const tpl = TEMPLATES[idx];
+  setPill("Edit");
+  view.innerHTML = `
+    <div class="card">
+      <h2>${escapeHtml(tpl.name)}<span class="tag">${escapeHtml(tpl.subtitle||"")}</span></h2>
+      <div class="exercise-meta">Edit name • sets • reps • rest • video search</div>
+      <div class="hr"></div>
+
+      <div class="list">
+        ${(tpl.exercises||[]).map((ex,i)=>`
+          <div class="exercise">
+            <div class="exercise-head">
+              <div style="flex:1">
+                <input class="input" style="width:100%;font-weight:900" value="${escapeAttr(ex.name)}" data-edit="name" data-i="${i}">
+                <div style="display:grid;grid-template-columns:110px 1fr;gap:10px;margin-top:8px;">
+                  <input class="input" inputmode="numeric" value="${ex.sets}" data-edit="sets" data-i="${i}" placeholder="Sets">
+                  <input class="input" value="${escapeAttr(ex.reps)}" data-edit="reps" data-i="${i}" placeholder="Reps">
+                </div>
+                <div style="display:grid;grid-template-columns:110px 1fr;gap:10px;margin-top:8px;">
+                  <input class="input" inputmode="numeric" value="${ex.rest||60}" data-edit="rest" data-i="${i}" placeholder="Rest (s)">
+                  <input class="input" value="${escapeAttr(ex.videoSearch||"")}" data-edit="videoSearch" data-i="${i}" placeholder="YouTube search e.g. 'lat pulldown form'">
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <button class="smallbtn" data-move="up" data-i="${i}">↑</button>
+                <button class="smallbtn" data-move="down" data-i="${i}">↓</button>
+                <button class="smallbtn del" data-del="${i}">🗑</button>
+              </div>
+            </div>
+          </div>`).join("")}
+      </div>
+
+      <div class="hr"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn primary" id="addEx">+ Add Exercise</button>
+        <button class="btn" id="saveTplBtn">Save</button>
+        <button class="btn" id="backTpls">Back</button>
+      </div>
+    </div>`;
+
+  view.querySelectorAll("[data-edit]").forEach(inp=>{
+    inp.oninput = ()=>{
+      const i=Number(inp.dataset.i);
+      const field=inp.dataset.edit;
+      if(field==="sets" || field==="rest") tpl.exercises[i][field] = Number(inp.value)||0;
+      else tpl.exercises[i][field] = inp.value;
+    };
+  });
+
+  view.querySelectorAll("[data-move]").forEach(btn=>{
+    btn.onclick = ()=>{
+      const i=Number(btn.dataset.i);
+      const j = btn.dataset.move==="up" ? i-1 : i+1;
+      if(j<0 || j>=tpl.exercises.length) return;
+      const tmp=tpl.exercises[i]; tpl.exercises[i]=tpl.exercises[j]; tpl.exercises[j]=tmp;
+      TEMPLATES[idx]=tpl; saveTemplates(TEMPLATES);
+      templateEditView(tplId);
+    };
+  });
+
+  view.querySelectorAll("[data-del]").forEach(btn=>{
+    btn.onclick = ()=>{
+      const i=Number(btn.dataset.del);
+      if(confirm("Delete this exercise?")){
+        tpl.exercises.splice(i,1);
+        TEMPLATES[idx]=tpl; saveTemplates(TEMPLATES);
+        templateEditView(tplId);
+      }
+    };
+  });
+
+  document.getElementById("addEx").onclick = ()=>{
+    tpl.exercises.push({id:crypto.randomUUID(), name:"New Exercise", sets:3, reps:"10–12", rest:60, videoSearch:""});
+    TEMPLATES[idx]=tpl; saveTemplates(TEMPLATES);
+    templateEditView(tplId);
+  };
+  document.getElementById("saveTplBtn").onclick = ()=>{
+    TEMPLATES[idx]=tpl; saveTemplates(TEMPLATES);
+    toast("Template saved ✅");
+  };
+  document.getElementById("backTpls").onclick = templatesView;
+}
+
+/* Boot */
+function boot(){
+  if("serviceWorker" in navigator){
+    navigator.serviceWorker.register("./sw.js").catch(()=>{});
+  }
+  const draft = sessionStorage.getItem("steadylog.draft");
+  if(draft){
+    try{
+      activeWorkout = JSON.parse(draft);
+      workoutView();
+      return;
+    }catch(e){
+      sessionStorage.removeItem("steadylog.draft");
+    }
+  }
+  homeView();
+}
+boot();
