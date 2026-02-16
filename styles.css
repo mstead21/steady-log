@@ -1,13 +1,14 @@
-/* Hard reset to kill "blue band" issues */
+/* =========================
+   HARD RESET (kills blue band)
+   ========================= */
 html, body {
   margin: 0;
   padding: 0;
   background: #0b0b0b;
   color: #f2f2f2;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  height: 100%;
+  min-height: 100%;
 }
-
 * { box-sizing: border-box; }
 :root { color-scheme: dark; }
 
@@ -17,13 +18,15 @@ html, body {
   flex-direction: column;
 }
 
-/* Header */
+/* =========================
+   Header
+   ========================= */
 .app-header {
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 20;
   background: #0b0b0b;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid rgba(255,255,255,0.10);
   padding: 14px 14px 12px;
 }
 
@@ -38,11 +41,11 @@ html, body {
   height: 12px;
   border-radius: 999px;
   background: #ffffff;
-  opacity: 0.9;
+  opacity: 0.95;
 }
 
 .brand-title {
-  font-weight: 800;
+  font-weight: 900;
   letter-spacing: 0.3px;
 }
 
@@ -56,24 +59,15 @@ html, body {
   margin-top: 10px;
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
-.ghost-btn {
-  background: transparent;
-  border: 1px solid rgba(255,255,255,0.14);
-  color: #fff;
-  padding: 9px 12px;
-  border-radius: 10px;
-  cursor: pointer;
-  font-weight: 650;
-}
-
-.ghost-btn:hover { border-color: rgba(255,255,255,0.25); }
-
-/* Main */
+/* =========================
+   Main
+   ========================= */
 .app-main {
   flex: 1;
-  padding: 14px 14px 86px; /* leave room for bottom nav */
+  padding: 14px 14px 92px; /* space for bottom nav */
 }
 
 .screen { display: none; }
@@ -82,17 +76,23 @@ html, body {
 .card {
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 16px;
+  border-radius: 18px;
   padding: 14px;
   margin-bottom: 14px;
+  box-shadow: 0 10px 22px rgba(0,0,0,0.25);
 }
 
 h2 {
   margin: 0 0 10px;
   font-size: 18px;
 }
+.h3 {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.95;
+}
 
-.muted { opacity: 0.7; margin-top: 6px; }
+.muted { opacity: 0.72; margin: 6px 0 0; }
 .small { font-size: 12px; }
 
 .divider {
@@ -101,31 +101,78 @@ h2 {
   margin: 14px 0;
 }
 
-/* Forms */
+.row-between {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* =========================
+   Buttons
+   ========================= */
+.ghost-btn {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.14);
+  color: #fff;
+  padding: 9px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 750;
+}
+.ghost-btn:hover { border-color: rgba(255,255,255,0.24); }
+
+.primary-btn, .secondary-btn {
+  border: 0;
+  border-radius: 12px;
+  padding: 12px 12px;
+  cursor: pointer;
+  font-weight: 850;
+}
+.primary-btn {
+  background: #ffffff;
+  color: #0b0b0b;
+}
+.secondary-btn {
+  background: rgba(255,255,255,0.10);
+  color: #ffffff;
+  border: 1px solid rgba(255,255,255,0.14);
+}
+.secondary-btn:hover { border-color: rgba(255,255,255,0.24); }
+
+.danger {
+  border-color: rgba(255,90,90,0.35) !important;
+}
+.secondary-btn.danger, .ghost-btn.danger {
+  border: 1px solid rgba(255,90,90,0.35);
+}
+.secondary-btn.danger:hover, .ghost-btn.danger:hover {
+  border-color: rgba(255,90,90,0.55);
+}
+
+/* =========================
+   Forms
+   ========================= */
 .form { display: grid; gap: 12px; }
 
 .form-row label {
   display: block;
   font-size: 12px;
-  opacity: 0.8;
+  opacity: 0.82;
   margin-bottom: 6px;
 }
 
-input, textarea {
+input, textarea, select {
   width: 100%;
   padding: 11px 12px;
   border-radius: 12px;
   border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.25);
+  background: rgba(0,0,0,0.28);
   color: #fff;
   outline: none;
 }
-
 textarea { min-height: 80px; resize: vertical; }
-
-input:focus, textarea:focus {
-  border-color: rgba(255,255,255,0.28);
-}
+input:focus, textarea:focus, select:focus { border-color: rgba(255,255,255,0.28); }
 
 .grid-2 {
   display: grid;
@@ -137,54 +184,29 @@ input:focus, textarea:focus {
   grid-template-columns: 1fr 1fr 1fr;
   gap: 10px;
 }
-
-@media (max-width: 720px) {
-  .grid-2 { grid-template-columns: 1fr; }
-  .grid-3 { grid-template-columns: 1fr; }
+@media (max-width: 800px) {
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .row-between { flex-direction: column; align-items: stretch; }
 }
 
-.primary-btn, .secondary-btn {
-  border: 0;
-  border-radius: 12px;
-  padding: 12px 12px;
-  cursor: pointer;
-  font-weight: 750;
-}
-
-.primary-btn {
-  background: #ffffff;
-  color: #0b0b0b;
-}
-
-.secondary-btn {
-  background: rgba(255,255,255,0.10);
-  color: #ffffff;
-  border: 1px solid rgba(255,255,255,0.14);
-}
-
-.secondary-btn:hover { border-color: rgba(255,255,255,0.25); }
-
-/* Lists */
-.list {
-  display: grid;
-  gap: 10px;
-}
+/* =========================
+   Lists
+   ========================= */
+.list { display: grid; gap: 10px; }
 
 .item {
   padding: 12px;
-  border-radius: 14px;
+  border-radius: 16px;
   border: 1px solid rgba(255,255,255,0.10);
   background: rgba(0,0,0,0.20);
 }
-
 .item-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 10px;
 }
-
-.item-title { font-weight: 800; }
+.item-title { font-weight: 900; }
 .item-sub { opacity: 0.75; font-size: 12px; margin-top: 6px; }
 
 .pill {
@@ -193,16 +215,34 @@ input:focus, textarea:focus {
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,0.14);
   background: rgba(255,255,255,0.06);
+  white-space: nowrap;
 }
 
+/* =========================
+   Stats
+   ========================= */
+.stat {
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.20);
+}
+.stat-label { font-size: 12px; opacity: 0.78; }
+.stat-value { font-weight: 950; font-size: 16px; margin-top: 6px; }
+
+/* =========================
+   Toolbar
+   ========================= */
 .toolbar {
   display: flex;
   gap: 10px;
-  margin-bottom: 12px;
+  margin: 10px 0 0;
 }
 .toolbar input { flex: 1; }
 
-/* Bottom nav */
+/* =========================
+   Bottom nav
+   ========================= */
 .bottom-nav {
   position: fixed;
   left: 0;
@@ -215,24 +255,49 @@ input:focus, textarea:focus {
   grid-template-columns: repeat(5, 1fr);
   gap: 8px;
   backdrop-filter: blur(10px);
+  z-index: 30;
 }
 
 .nav-btn {
   border: 1px solid rgba(255,255,255,0.10);
   background: rgba(255,255,255,0.06);
   color: #fff;
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 10px 8px;
   cursor: pointer;
   display: grid;
   justify-items: center;
   gap: 4px;
 }
-
 .nav-btn.active {
-  border-color: rgba(255,255,255,0.26);
+  border-color: rgba(255,255,255,0.28);
   background: rgba(255,255,255,0.12);
 }
-
 .nav-ico { font-size: 16px; line-height: 1; }
-.nav-text { font-size: 11px; opacity: 0.9; }
+.nav-text { font-size: 11px; opacity: 0.92; }
+
+/* =========================
+   Modal
+   ========================= */
+.modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  z-index: 50;
+}
+.modal.show { display: block; }
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.62);
+}
+.modal-card {
+  position: relative;
+  margin: 12vh auto 0;
+  width: min(760px, calc(100% - 24px));
+  background: #0f0f0f;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 18px;
+  padding: 14px;
+  box-shadow: 0 18px 48px rgba(0,0,0,0.45);
+}
