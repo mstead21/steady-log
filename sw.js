@@ -1,4 +1,4 @@
-const CACHE = "steady-log-PREMIUM_LOCKED_A_2026_02_15";
+const CACHE = "steady-log-PREMIUM_LOCKED_A_2026_02_16_FIX1";
 const ASSETS = [
   "./",
   "./index.html",

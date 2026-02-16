@@ -17,8 +17,7 @@
 }
 
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;padding:0;background:var(--bg)}
-body{height:100%}
+html,body{height:100%;background:var(--bg)}
 body{
   margin:0;
   color:var(--text);
@@ -30,20 +29,8 @@ body{
   background-attachment: scroll;
   overflow-x:hidden;
 }
-
 /* kill any pseudo overlays (Safari band) */
-body::after{content:none !important}
-
-/* FIX: paint safe-area top so iOS status bar doesn't show cyan band */
-body::before{
-  content:"";
-  position:fixed;
-  top:0;left:0;right:0;
-  height:env(safe-area-inset-top);
-  background:var(--bg);
-  z-index:99999;
-  pointer-events:none;
-}
+body::before, body::after{content:none !important}
 
 .container{max-width:860px;margin:0 auto;padding:18px;padding-bottom:118px}
 
