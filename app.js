@@ -10,7 +10,7 @@
    - Macros: daily logging + targets + progress bars + streak
    - Exports: workouts CSV + tracker CSV + macros CSV
 */
-const BUILD_TAG = "FULLFIX_DIRECTVIDEO_2026_02_16_v2";
+const BUILD_TAG = "v1_all_2026_02_16";
 
 const STORAGE_KEY   = "steadylog.sessions.v3";
 const TEMPLATES_KEY = "steadylog.templates.v3";
@@ -128,6 +128,43 @@ function getLastSetsForExercise(exId){
   }
   return [];
 }
+
+
+function extractYouTubeId(url){
+  try{
+    const u = new URL(url);
+    if(u.hostname.includes("youtu.be")){
+      const id = u.pathname.replace("/", "");
+      return id || null;
+    }
+    if(u.searchParams.get("v")) return u.searchParams.get("v");
+    const m = u.pathname.match(/\/shorts\/([^/]+)/);
+    if(m) return m[1];
+    return null;
+  }catch(e){
+    return null;
+  }
+}
+function youtubeThumbUrl(id){
+  return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+}
+function getBestKgForExercise(exId){
+  const sessions = loadSessions();
+  let best = null;
+  for(const ses of sessions){
+    for(const ex of (ses.exercises||[])){
+      if(ex.id !== exId) continue;
+      for(const s of (ex.sets||[])){
+        const kg = Number(s.kg);
+        if(Number.isFinite(kg)){
+          best = best===null ? kg : Math.max(best, kg);
+        }
+      }
+    }
+  }
+  return best;
+}
+
 function getSuggestedKg(exId){
   const lastSets = getLastSetsForExercise(exId);
   if(!lastSets.length) return "";
@@ -207,10 +244,8 @@ function openVideo(title, searchOrUrl){
     ? q
     : "https://www.youtube.com/results?search_query=" + encodeURIComponent(q);
 
-  // Direct open (no modal / extra tap)
   window.open(youtubeUrl, "_blank", "noopener,noreferrer");
 }
-
 function closeVideo(){
   videoFrame.src = "";
   videoModal.classList.remove("show");
@@ -565,10 +600,21 @@ function workoutView(){
             <div class="exercise-head">
               <div style="flex:1">
                 <div class="exercise-name">${escapeHtml(ex.name)}</div>
-                <div class="exercise-meta">🎯 ${ex.targetSets} sets • ${escapeHtml(ex.targetReps)} • Rest: ${rest}s • Last: ${escapeHtml(lastStr)}</div>
+                <div class="exercise-meta">🎯 ${ex.targetSets} sets • ${escapeHtml(ex.targetReps)} • Rest: ${rest}s • Last: ${escapeHtml(lastStr)} • Best: ${(()=>{const b=getBestKgForExercise(ex.id); return b===null?"—":(Math.round(b*10)/10)+"kg";})()}</div>
               </div>
               <div style="display:flex; gap:8px; align-items:center">
-                <button class="btn small" style="width:auto" data-video="${idx}">▶ Video</button>
+                ${(()=>{ 
+                  const vs=(ex.videoSearch||"").trim();
+                  if(!vs) return "";
+                  const vid = vs.startsWith("http") ? extractYouTubeId(vs) : null;
+                  const thumb = vid ? youtubeThumbUrl(vid) : "";
+                  return `
+                    <button class="btn small videoBtn" style="width:auto" data-video="${idx}">
+                      ${thumb ? `<img class="videoThumb" src="${thumb}" alt="YouTube thumbnail">` : `<span class="videoThumbFallback">▶</span>`}
+                      <span>Video</span>
+                    </button>
+                  `;
+                })()}
                 <button class="btn small" style="width:auto" data-add="${idx}">+ Set</button>
               </div>
             </div>
@@ -965,6 +1011,9 @@ function templateEditView(tplId){
 
 /* Boot */
 function boot(){
+  if("serviceWorker" in navigator){
+    navigator.serviceWorker.register("./sw.js").catch(()=>{});
+  }
   const draft = sessionStorage.getItem("steadylog.draft");
   if(draft){
     try{
