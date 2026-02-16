@@ -29,8 +29,19 @@ body{
   background-attachment: scroll;
   overflow-x:hidden;
 }
-/* kill any pseudo overlays (Safari band) */
-body::before, body::after{content:none !important}
+
+/* prevent Safari odd overlays */
+body::after{content:none}
+/* FIX: paint safe-area top so cyan gradients don’t show as a band */
+body::before{
+  content:"";
+  position:fixed;
+  top:0;left:0;right:0;
+  height:env(safe-area-inset-top);
+  background:var(--bg);
+  z-index:99999;
+  pointer-events:none;
+}
 
 .container{max-width:860px;margin:0 auto;padding:18px;padding-bottom:118px}
 
