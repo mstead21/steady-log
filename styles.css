@@ -17,7 +17,8 @@
 }
 
 *{box-sizing:border-box}
-html,body{height:100%}
+html,body{height:100%;margin:0;padding:0;background:var(--bg)}
+body{height:100%}
 body{
   margin:0;
   color:var(--text);
@@ -30,9 +31,10 @@ body{
   overflow-x:hidden;
 }
 
-/* prevent Safari odd overlays */
-body::after{content:none}
-/* FIX: paint safe-area top so cyan gradients don’t show as a band */
+/* kill any pseudo overlays (Safari band) */
+body::after{content:none !important}
+
+/* FIX: paint safe-area top so iOS status bar doesn't show cyan band */
 body::before{
   content:"";
   position:fixed;
