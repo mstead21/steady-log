@@ -1,3 +1,25 @@
+function openVideo(searchOrUrl){
+  const q = (searchOrUrl || "").trim();
+  if(!q) return;
+
+  const youtubeUrl = q.startsWith("http")
+    ? q
+    : "https://www.youtube.com/results?search_query=" + encodeURIComponent(q);
+
+  window.open(youtubeUrl, "_blank", "noopener,noreferrer");
+}
+
+function safeUUID(){
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return safeUUID();
+  }
+  return 'xxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random() * 16 | 0,
+        v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 /* Steady Log — FULL PREMIUM LOCKED BUILD (PREMIUM_LOCKED_A_2026_02_15)
    A) Per-exercise rest timers (each exercise has its own rest time)
    Premium:
@@ -221,18 +243,6 @@ const videoTitle = document.getElementById("videoTitle");
 
 function youtubeWebSearchUrl(q){ return "https://www.youtube.com/results?search_query=" + encodeURIComponent(q); }
 function youtubeEmbedSearchUrl(q){ return "https://www.youtube.com/embed?listType=search&list=" + encodeURIComponent(q) + "&rel=0&modestbranding=1&playsinline=1"; }
-function openVideo(title, youtubeUrl){
-  // iOS/Safari is unreliable with embedded YouTube (and many videos block embeds),
-  // so we use a clean modal + "Open in YouTube" button.
-  videoTitle.textContent = `Video • ${title}`;
-  videoFrame.innerHTML = `
-    <div class="videoPlaceholder">
-      <div class="vpTitle">Watch this exercise</div>
-      <div class="vpSub">Tap <b>Open in YouTube</b> to play (best reliability on iPhone).</div>
-    </div>`;
-  openYtBtn.onclick = ()=> window.open(youtubeUrl, "_blank", "noopener");
-  videoModal.classList.add("show");
-}
 function closeVideo(){
   videoFrame.src = "";
   videoModal.classList.remove("show");
@@ -974,7 +984,7 @@ function templateEditView(tplId){
   });
 
   document.getElementById("addEx").onclick = ()=>{
-    tpl.exercises.push({id:crypto.randomUUID(), name:"New Exercise", sets:3, reps:"10–12", rest:60, videoSearch:""});
+    tpl.exercises.push({id:safeUUID(), name:"New Exercise", sets:3, reps:"10–12", rest:60, videoSearch:""});
     TEMPLATES[idx]=tpl; saveTemplates(TEMPLATES);
     templateEditView(tplId);
   };
