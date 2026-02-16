@@ -230,7 +230,7 @@ function openVideo(title, youtubeUrl){
       <div class="vpTitle">Watch this exercise</div>
       <div class="vpSub">Tap <b>Open in YouTube</b> to play (best reliability on iPhone).</div>
     </div>`;
-  openYtBtn.onclick = ()=> window.open(youtubeUrl, "_blank", "noopener");
+  
   videoModal.classList.add("show");
 }
 function closeVideo(){
