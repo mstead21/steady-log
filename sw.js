@@ -1,4 +1,4 @@
-const CACHE = "steady-log-FIX3";
+const CACHE = "steady-log-PREMIUM_LOCKED_A_2026_02_16_FIX2";
 const ASSETS = [
   "./",
   "./index.html",
@@ -28,7 +28,7 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   const req = e.request;
 
-  // Network-first for navigations (keeps app from getting "stuck" blank)
+  // Network-first for navigations so updates can't get stuck.
   if (req.mode === "navigate") {
     e.respondWith((async () => {
       try {
@@ -43,7 +43,7 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
-  // Cache-first for assets (IMPORTANT: do NOT ignore query strings)
+  // Cache-first for assets (do NOT ignore query strings).
   e.respondWith((async () => {
     const cached = await caches.match(req);
     if (cached) return cached;
