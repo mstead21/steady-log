@@ -28,7 +28,7 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   const req = e.request;
 
-  // Network-first for navigations so updates can't get stuck.
+  // Network-first for page navigations so app never goes "blank" after updates
   if (req.mode === "navigate") {
     e.respondWith((async () => {
       try {
@@ -43,7 +43,7 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
-  // Cache-first for assets (do NOT ignore query strings).
+  // Cache-first for assets, BUT do not ignore query strings
   e.respondWith((async () => {
     const cached = await caches.match(req);
     if (cached) return cached;

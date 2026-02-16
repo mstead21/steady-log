@@ -200,12 +200,14 @@ const videoTitle = document.getElementById("videoTitle");
 function youtubeWebSearchUrl(q){ return "https://www.youtube.com/results?search_query=" + encodeURIComponent(q); }
 function youtubeEmbedSearchUrl(q){ return "https://www.youtube.com/embed?listType=search&list=" + encodeURIComponent(q) + "&rel=0&modestbranding=1&playsinline=1"; }
 function openVideo(title, searchOrUrl){
+  // Reliability-first on iPhone: open a real YouTube page (search or direct URL).
   const q = (searchOrUrl || "").trim();
-  const url = !q ? "https://www.youtube.com/" : (q.startsWith("http") ? q : youtubeWebSearchUrl(q));
   currentSearch = q;
 
-  // iOS/Safari is unreliable with embedded YouTube (and many videos block embeds),
-  // so we use a clean modal + "Open in YouTube" button.
+  const youtubeUrl = q
+    ? (q.startsWith("http") ? q : youtubeWebSearchUrl(q))
+    : "https://www.youtube.com/";
+
   videoTitle.textContent = `Video • ${title}`;
   videoFrame.innerHTML = `
     <div class="videoPlaceholder">
@@ -213,14 +215,14 @@ function openVideo(title, searchOrUrl){
       <div class="vpSub">Tap <b>Open in YouTube</b> to play (best reliability on iPhone).</div>
     </div>`;
 
-  videoOpenNew.onclick = ()=> window.open(url, "_blank", "noopener,noreferrer");
+  videoOpenNew.onclick = ()=> window.open(youtubeUrl, "_blank", "noopener,noreferrer");
+
   videoModal.classList.add("show");
   videoModal.setAttribute("aria-hidden","false");
 }
-function closeVideo
-function closeVideo(){
+function closeVideo(){{
   videoFrame.innerHTML = "";
-videoModal.classList.remove("show");
+  videoModal.classList.remove("show");
   videoModal.setAttribute("aria-hidden","true");
 }
 videoClose.onclick = closeVideo;
@@ -973,7 +975,32 @@ function templateEditView(tplId){
 /* Boot */
 function boot(){
   if("serviceWorker" in navigator){
-    navigator.serviceWorker.register("./sw.js?v=PREMIUM_LOCKED_A_2026_02_16_FIX2").catch(()=>{});
+    (async function () {
+  if (!("serviceWorker" in navigator)) return;
+
+  // One-time rescue: if an old SW cache caused a blank screen, clear it once per build.
+  const flag = "steadylog_sw_reset_" + BUILD_TAG;
+  try {
+    if (!localStorage.getItem(flag)) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+      localStorage.setItem(flag, "1");
+      // Reload once, then the new SW will be registered cleanly.
+      location.reload();
+      return;
+    }
+  } catch (e) {}
+
+  try {
+    const reg = await navigator.serviceWorker.register("./sw.js?v=" + BUILD_TAG);
+    // Ask for an update in case the browser held on to an older SW.
+    if (reg && reg.update) reg.update();
+  } catch (e) {}
+})().catch(()=>{});
   }
   const draft = sessionStorage.getItem("steadylog.draft");
   if(draft){
