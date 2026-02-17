@@ -90,15 +90,14 @@
     { name:"Seated Calf Raise", video:"seated calf raise machine", tags:["calves"] },
   ];
 
-    const DEFAULT_TEMPLATES = [
-    { id:"upper_push", name:"Upper Push", subtitle:"Chest + Shoulders + Arms",
+      const DEFAULT_TEMPLATES = [
+    { id:"upper_push", name:"Upper Push", subtitle:"Chest + Shoulders + Triceps",
       exercises:[
         { id:"smith_incline", name:"Smith Incline Bench Press", sets:4, reps:"6–8",  rest:120, video:"smith incline bench press" },
         { id:"chest_press", name:"Plate-Loaded Chest Press", sets:3, reps:"8–10", rest:90,  video:"plate loaded chest press machine" },
         { id:"shoulder_press", name:"Machine Shoulder Press", sets:3, reps:"8–10", rest:90,  video:"machine shoulder press" },
         { id:"lat_raise", name:"Dumbbell Lateral Raise", sets:3, reps:"12–20", rest:60,  video:"dumbbell lateral raise strict form" },
         { id:"tri_pushdown", name:"Cable Tricep Pushdown", sets:3, reps:"10–15", rest:60, video:"cable tricep pushdown form" },
-        { id:"preacher", name:"Preacher Curl Machine", sets:2, reps:"10–15", rest:60, video:"preacher curl machine" },
       ]
     },
     { id:"lower_quad", name:"Lower Quad", subtitle:"Quads + Calves",
@@ -109,13 +108,14 @@
         { id:"calves", name:"Standing Calf Raise", sets:4, reps:"10–15", rest:60, video:"standing calf raise machine" },
       ]
     },
-    { id:"upper_pull", name:"Upper Pull", subtitle:"Back + Incline Machine + Arms",
+    { id:"upper_pull", name:"Upper Pull", subtitle:"Back + Biceps",
       exercises:[
         { id:"lat_pd", name:"Lat Pulldown", sets:4, reps:"8–12", rest:90,  video:"lat pulldown proper form" },
         { id:"row_cs", name:"Chest Supported Row Machine (Plate)", sets:3, reps:"8–12", rest:90,  video:"plate loaded chest supported row" },
-        { id:"incl_plate", name:"Plate-Loaded Incline Chest Press", sets:3, reps:"8–12", rest:90,  video:"plate loaded incline chest press machine" },
+        { id:"tbar", name:"T-Bar Row", sets:3, reps:"8–12", rest:90, video:"t bar row proper form" },
         { id:"facepull", name:"Face Pull", sets:3, reps:"12–20", rest:60, video:"cable face pull correct form" },
         { id:"cable_curl", name:"Cable Curl", sets:3, reps:"10–15", rest:60, video:"cable bicep curl form" },
+        { id:"preacher", name:"Preacher Curl Machine", sets:2, reps:"10–15", rest:60, video:"preacher curl machine" },
       ]
     },
     { id:"lower_glute_ham", name:"Lower Glute/Ham", subtitle:"Hamstrings + Glutes + Calves",
