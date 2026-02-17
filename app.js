@@ -47,14 +47,10 @@
     }catch(_){ return null; }
   }
   function youtubeThumbUrl(id){ return `https://img.youtube.com/vi/${id}/hqdefault.jpg`; }
-  function openVideo(searchOrUrl){
-    const q = (searchOrUrl || "").trim();
-    if(!q) return;
-    const url = q.startsWith("http")
-      ? q
-      : "https://www.youtube.com/results?search_query=" + encodeURIComponent(q);
-    window.open(url, "_blank", "noopener,noreferrer");
-  }
+  function openVideo(video) {
+  const url = "https://www.youtube.com/results?search_query=" + encodeURIComponent(video);
+  window.open(url, "_blank");
+}
 
   // ---------- Storage ----------
   const KEY = {
