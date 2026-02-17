@@ -1,11 +1,10 @@
 {
   "name": "Steady Log",
   "short_name": "Steady Log",
-  "start_url": "./?v=PREMIUM_LOCKED_A_2026_02_15",
-  "scope": "./",
+  "start_url": "./",
   "display": "standalone",
-  "background_color": "#0c0c10",
-  "theme_color": "#0c0c10",
+  "background_color": "#0b0b10",
+  "theme_color": "#0b0b10",
   "icons": [
     {
       "src": "./icon-192.png",

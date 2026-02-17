@@ -3,53 +3,64 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#0c0c10" />
+  <meta name="theme-color" content="#0b0b10" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   <title>Steady Log</title>
 
-  <link rel="manifest" href="./manifest.json?v=RESCUE_V3" />
-  <link rel="stylesheet" href="./styles.css?v=FINAL_NIGHT_FIX" />
+  <link rel="manifest" href="./manifest.json?v=BEST_V3" />
+  <link rel="stylesheet" href="./styles.css?v=BEST_V3" />
   <link rel="apple-touch-icon" href="./icon-192.png" />
 </head>
 <body>
-  <div class="container">
-    <div class="header">
+  <div class="app">
+    <header class="top">
       <div class="brand">
         <div class="logo">SL</div>
-        <div>
-          <h1>Steady Log</h1>
-          <div class="sub">Weights-only • Dark mode • Offline</div>
+        <div class="brandText">
+          <div class="brandTitle">Steady Log</div>
+          <div class="brandSub">Weights • Tracking • PRs</div>
         </div>
       </div>
-      <div class="pill" id="pillStatus">Ready</div>
+      <div class="topRight">
+        <div class="pill" id="pillStatus">Ready</div>
+      </div>
+    </header>
+
+    <main id="view" class="view"></main>
+
+    <nav class="nav" id="nav"></nav>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <div class="restBar" id="restBar" hidden>
+      <div class="restBarInner">
+        <div class="restLeft">
+          <div class="restLabel">Rest</div>
+          <div class="restTime" id="restTime">--</div>
+        </div>
+        <div class="restBtns">
+          <button class="btn small" id="restPlus15" type="button">+15</button>
+          <button class="btn small" id="restPlus30" type="button">+30</button>
+          <button class="btn danger small" id="restStop" type="button">Stop</button>
+        </div>
+      </div>
     </div>
 
-    <div id="view"></div>
-  </div>
-
-  <div class="footerbar">
-    <div class="wrap" id="footerWrap"></div>
-  </div>
-
-  <div class="toast" id="toast">Saved ✅</div>
-
-  <!-- Video Modal -->
-  <div class="modal" id="videoModal" aria-hidden="true">
-    <div class="modalCard">
-      <div class="modalHead">
-        <div class="modalTitle" id="videoTitle">Video</div>
-        <button class="btn danger small" id="videoClose">Close</button>
+    <div class="sheetBackdrop" id="sheetBackdrop" hidden></div>
+    <div class="sheet" id="sheet" hidden>
+      <div class="sheetHandle"></div>
+      <div class="sheetHead">
+        <div class="sheetTitle" id="sheetTitle">Edit</div>
+        <button class="btn danger small" id="sheetClose" type="button">Close</button>
       </div>
       <div class="hr"></div>
-      <div class="videoWrap">
-        <div id="videoFrame" class="videoFrame"></div>
-      </div>
-      <div class="hr"></div>
-      <button class="btn" id="videoOpenNew">Open in YouTube</button>
+      <div id="sheetBody"></div>
     </div>
+
+    <div class="err" id="err" hidden></div>
   </div>
 
-  <script src="./app.js?v=FINAL_NIGHT_FIX"></script>
+  <script src="./app.js?v=BEST_V3"></script>
 </body>
 </html>
