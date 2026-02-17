@@ -1,8 +1,3 @@
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister()));
-  if (window.caches) { caches.keys().then(keys=>keys.forEach(k=>caches.delete(k))); }
-}
-const APP_VERSION = "v202602171908";
 /* Steady Log — BEST V3 (one-swoop WOW)
    - No service worker registration (prevents caching blanks)
    - Direct YouTube open + thumbnails
@@ -1080,13 +1075,7 @@ const APP_VERSION = "v202602171908";
             const isPR = (bestNow!==null) && (bestBefore===null || bestNow>bestBefore);
 
             const videoBlock = vs ? `
-              <div class="videoMini" data-action="video" data-ex="${exIdx}">
-                ${thumb ? `<img class="videoThumb" src="${thumb}" alt="YouTube thumbnail">` : `<div class="videoThumbFallback">▶</div>`}
-                <div>
-                  <div style="font-weight:950;font-size:12px">Video</div>
-                  <div style="font-size:11px;color:rgba(233,233,242,.7)">${vid ? "Watch on YouTube" : "Search on YouTube"}</div>
-                </div>
-              </div>` : "";
+              <button class="videoPlay" type="button" data-action="video" data-ex="${exIdx}" aria-label="Play video">▶</button>` : "";
 
             return `
               <div class="exercise">
@@ -1605,5 +1594,3 @@ const APP_VERSION = "v202602171908";
   render();
   setStatus("Ready");
 })();
-
-try{const vb=document.getElementById('versionBadge'); if(vb) vb.textContent=APP_VERSION;}catch(e){}
