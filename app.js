@@ -91,40 +91,49 @@
   ];
 
       const DEFAULT_TEMPLATES = [
-    { id:"upper_push", name:"Upper Push", subtitle:"Chest + Shoulders + Triceps",
+    { id:"upper_push", name:"Upper Push", subtitle:"Chest + Shoulders + Triceps + Cardio",
       exercises:[
-        { id:"smith_incline", name:"Smith Incline Bench Press", sets:4, reps:"6–8",  rest:120, video:"smith incline bench press" },
-        { id:"chest_press", name:"Plate-Loaded Chest Press", sets:3, reps:"8–10", rest:90,  video:"plate loaded chest press machine" },
-        { id:"shoulder_press", name:"Machine Shoulder Press", sets:3, reps:"8–10", rest:90,  video:"machine shoulder press" },
-        { id:"lat_raise", name:"Dumbbell Lateral Raise", sets:3, reps:"12–20", rest:60,  video:"dumbbell lateral raise strict form" },
+        { id:"smith_incline", name:"Smith Incline Bench Press", sets:4, reps:"6–8", rest:120, video:"smith incline bench press" },
+        { id:"chest_press", name:"Plate-Loaded Chest Press", sets:3, reps:"8–10", rest:90, video:"plate loaded chest press machine" },
+        { id:"shoulder_press", name:"Machine Shoulder Press", sets:3, reps:"8–10", rest:90, video:"machine shoulder press" },
+        { id:"lat_raise", name:"Dumbbell Lateral Raise", sets:3, reps:"12–20", rest:60, video:"dumbbell lateral raise strict form" },
         { id:"tri_pushdown", name:"Cable Tricep Pushdown", sets:3, reps:"10–15", rest:60, video:"cable tricep pushdown form" },
+        { id:"cardio", name:"20 Min Cardio (Your Choice)", sets:1, reps:"20 mins", rest:0, video:"stairmaster workout 20 minutes" },
       ]
     },
     { id:"lower_quad", name:"Lower Quad", subtitle:"Quads + Calves",
       exercises:[
-        { id:"leg_press", name:"45° Leg Press", sets:4, reps:"8–12",  rest:120, video:"45 degree leg press proper form" },
-        { id:"leg_ext", name:"Leg Extension", sets:3, reps:"12–15", rest:75,  video:"leg extension machine form" },
+        { id:"leg_press", name:"45° Leg Press", sets:4, reps:"8–12", rest:120, video:"45 degree leg press proper form" },
+        { id:"leg_ext", name:"Leg Extension", sets:3, reps:"12–15", rest:75, video:"leg extension machine form" },
         { id:"ham_curl", name:"Seated Hamstring Curl", sets:3, reps:"10–15", rest:75, video:"seated hamstring curl form" },
         { id:"calves", name:"Standing Calf Raise", sets:4, reps:"10–15", rest:60, video:"standing calf raise machine" },
       ]
     },
-    { id:"upper_pull", name:"Upper Pull", subtitle:"Back + Biceps",
+    { id:"upper_pull", name:"Upper Pull", subtitle:"Back + Biceps + Cardio",
       exercises:[
-        { id:"lat_pd", name:"Lat Pulldown", sets:4, reps:"8–12", rest:90,  video:"lat pulldown proper form" },
-        { id:"row_cs", name:"Chest Supported Row Machine (Plate)", sets:3, reps:"8–12", rest:90,  video:"plate loaded chest supported row" },
-        { id:"tbar", name:"T-Bar Row", sets:3, reps:"8–12", rest:90, video:"t bar row proper form" },
+        { id:"lat_pd", name:"Lat Pulldown (Slightly Wide Pronated)", sets:4, reps:"8–12", rest:90, video:"lat pulldown proper form" },
+        { id:"row_cs", name:"Chest-Supported Row (Neutral Grip)", sets:3, reps:"8–12", rest:90, video:"chest supported row machine neutral grip" },
+        { id:"tbar", name:"T-Bar Row (Slightly Wide Grip)", sets:3, reps:"8–12", rest:90, video:"t bar row proper form" },
         { id:"facepull", name:"Face Pull", sets:3, reps:"12–20", rest:60, video:"cable face pull correct form" },
         { id:"cable_curl", name:"Cable Curl", sets:3, reps:"10–15", rest:60, video:"cable bicep curl form" },
         { id:"preacher", name:"Preacher Curl Machine", sets:2, reps:"10–15", rest:60, video:"preacher curl machine" },
+        { id:"cardio2", name:"20 Min Cardio (Your Choice)", sets:1, reps:"20 mins", rest:0, video:"stairmaster workout 20 minutes" },
       ]
     },
     { id:"lower_glute_ham", name:"Lower Glute/Ham", subtitle:"Hamstrings + Glutes + Calves",
       exercises:[
         { id:"rdl", name:"Romanian Deadlift (BB/DB)", sets:4, reps:"6–10", rest:120, video:"romanian deadlift barbell form" },
         { id:"hip_thrust", name:"Hip Thrust", sets:4, reps:"8–12", rest:120, video:"barbell hip thrust form" },
-        { id:"ham_curl2", name:"Lying Hamstring Curl", sets:3, reps:"10–15", rest:75,  video:"lying hamstring curl form" },
-        { id:"abduct", name:"Hip Abductor", sets:3, reps:"12–20", rest:60,  video:"hip abductor machine form" },
-        { id:"calves2", name:"Seated Calf Raise", sets:3, reps:"10–15", rest:60,  video:"seated calf raise machine" },
+        { id:"ham_curl2", name:"Lying Hamstring Curl", sets:3, reps:"10–15", rest:75, video:"lying hamstring curl form" },
+        { id:"abduct", name:"Hip Abductor", sets:3, reps:"12–20", rest:60, video:"hip abductor machine form" },
+        { id:"calves2", name:"Seated Calf Raise", sets:3, reps:"10–15", rest:60, video:"seated calf raise machine" },
+      ]
+    },
+    { id:"wednesday_core", name:"Wednesday Core + Cardio", subtitle:"Abs + 20 Min Cardio",
+      exercises:[
+        { id:"crunch", name:"Cable Crunch", sets:3, reps:"12–15", rest:60, video:"cable crunch proper form" },
+        { id:"knee_raise", name:"Hanging Knee Raise", sets:3, reps:"Controlled", rest:60, video:"hanging knee raise proper form" },
+        { id:"cardio3", name:"20 Min Cardio (Your Choice)", sets:1, reps:"20 mins", rest:0, video:"stairmaster workout 20 minutes" },
       ]
     },
   ];
