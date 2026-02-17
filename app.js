@@ -1,3 +1,8 @@
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister()));
+  if (window.caches) { caches.keys().then(keys=>keys.forEach(k=>caches.delete(k))); }
+}
+const APP_VERSION = "v202602171908";
 /* Steady Log — BEST V3 (one-swoop WOW)
    - No service worker registration (prevents caching blanks)
    - Direct YouTube open + thumbnails
@@ -47,10 +52,14 @@
     }catch(_){ return null; }
   }
   function youtubeThumbUrl(id){ return `https://img.youtube.com/vi/${id}/hqdefault.jpg`; }
-  function openVideo(video) {
-  const url = "https://www.youtube.com/results?search_query=" + encodeURIComponent(video);
-  window.open(url, "_blank");
-}
+  function openVideo(searchOrUrl){
+    const q = (searchOrUrl || "").trim();
+    if(!q) return;
+    const url = q.startsWith("http")
+      ? q
+      : "https://www.youtube.com/results?search_query=" + encodeURIComponent(q);
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
 
   // ---------- Storage ----------
   const KEY = {
@@ -1596,3 +1605,5 @@
   render();
   setStatus("Ready");
 })();
+
+try{const vb=document.getElementById('versionBadge'); if(vb) vb.textContent=APP_VERSION;}catch(e){}
