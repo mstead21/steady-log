@@ -378,3 +378,61 @@ canvas.chart{width:100%;height:120px;display:block}
 }
 /* Template tag smaller for premium */
 .templateBtn .tag{ min-width: 44px; text-align:center; }
+
+
+
+/* === Premium alignment patch: consistent left grid === */
+:root{
+  --card-pad-x: 18px;
+  --card-pad-y: 16px;
+}
+
+/* Ensure primary home sections share identical horizontal padding */
+.homeSection, .homeCard, .sectionCard, .glassCard, .panel, .card{
+  padding-left: var(--card-pad-x) !important;
+  padding-right: var(--card-pad-x) !important;
+}
+
+/* Weekly plan tiles */
+.weeklyPlan, .weekGrid, .weekPlan{
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+.weeklyPlan .dayTile, .weekGrid .dayTile, .weekGrid .day, .weekPlan .dayTile{
+  padding-left: var(--card-pad-x) !important;
+  padding-right: var(--card-pad-x) !important;
+}
+
+/* Templates list cards */
+.templates, .templateList{
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+.templateCard, .templateRow, .templateItem, .templateBtn, .tplCard{
+  padding-left: var(--card-pad-x) !important;
+  padding-right: var(--card-pad-x) !important;
+}
+
+/* Remove any extra indent from nested wrappers */
+.templateCard .content, .templateRow .content, .templateCard .inner, .templateRow .inner,
+.weeklyPlan .inner, .weekGrid .inner{
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+}
+
+/* Titles/subtitles anchor to same left edge */
+.templateCard h2, .templateCard h3, .templateCard .title,
+.templateRow h2, .templateRow h3, .templateRow .title,
+.weeklyPlan .dayTile .dayName, .weekGrid .dayTile .dayName,
+.weeklyPlan .dayTile .daySub, .weekGrid .dayTile .daySub{
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+}
+
+/* Subtitle tone */
+.templateCard .subtitle, .templateRow .subtitle, .templateCard p, .templateRow p{
+  opacity: .68;
+  line-height: 1.25;
+  margin-top: 6px;
+}
+/* === End patch === */
