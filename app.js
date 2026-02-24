@@ -762,15 +762,22 @@
     const mon = mondayOfThisWeek();
     const days = weekDays(mon);
 
+    const todayStr = isoDate(new Date());
+    const todayPlanId = plannedTemplateId(todayStr);
+    const todayPlanName = plannedTemplateName(todayStr);
+
     function pct(v, target){
       if(!target) return 0;
       return Math.max(0, Math.min(100, Math.round((v/target)*100)));
     }
 
+    const startSub = todayPlanId ? escapeHtml(todayPlanName) : "Tap to choose today’s workout";
+
     return `
-      <div class="card">
+      <div class="card dashCard">
         <div class="h2">Dashboard</div>
         <div class="sub">Snapshot + momentum.</div>
+
         <div class="hr"></div>
 
         <div class="grid">
@@ -778,32 +785,6 @@
           <div class="stat"><div class="statVal">${last ? fmtShort(last.startedAt) : "—"}</div><div class="statLab">last session</div></div>
           <div class="stat"><div class="statVal">${streak} 🔥</div><div class="statLab">workout streak</div></div>
           <div class="stat"><div class="statVal">${mStreak} ✅</div><div class="statLab">macros streak</div></div>
-        </div>
-
-        <div class="hr"></div>
-
-        <div class="row wrap">
-          <div style="flex:1;min-width:260px">
-            <div class="sub">Today’s macros</div>
-            <div style="margin-top:8px">
-              <div class="sub">Calories ${todayM.calories}/${t.calories}</div>
-              <div class="progress"><div style="width:${pct(todayM.calories,t.calories)}%"></div></div>
-            </div>
-            <div style="margin-top:8px">
-              <div class="sub">Protein ${todayM.protein}g/${t.protein}g</div>
-              <div class="progress"><div style="width:${pct(todayM.protein,t.protein)}%"></div></div>
-            </div>
-          </div>
-
-          <div style="flex:1;min-width:260px">
-            <div class="sub">7-day avg weight</div>
-            <div class="h2" style="margin:10px 0 0">${wAvg ? wAvg.toFixed(1)+" kg" : "—"}</div>
-            <div class="row wrap" style="margin-top:10px">
-              <button class="btn small primary" data-action="quickAddWeight">+ Weight</button>
-              <button class="btn small" data-action="goTracker">Open Tracker</button>
-              <button class="btn small gold" data-action="openBackup">Backup</button>
-            </div>
-          </div>
         </div>
 
         <div class="hr"></div>
@@ -818,32 +799,79 @@
             <div class="canvasWrap"><canvas class="chart" id="chartWorkouts"></canvas></div>
           </div>
         </div>
+
+        <div class="hr"></div>
+
+        <div class="row wrap" style="justify-content:space-between;align-items:center">
+          <div>
+            <div class="sub">7‑day avg weight</div>
+            <div class="h2" style="margin:6px 0 0">${wAvg ? wAvg.toFixed(1)+" kg" : "—"}</div>
+          </div>
+          <div class="row wrap" style="gap:8px">
+            <button class="btn small primary" data-action="quickAddWeight">+ Weight</button>
+            <button class="btn small" data-action="goTracker">Tracker</button>
+          </div>
+        </div>
       </div>
 
+      <button class="primaryStart" data-action="startToday">
+        <div class="psTop">START WORKOUT</div>
+        <div class="psSub">${startSub}</div>
+        <div class="psArrow">›</div>
+      </button>
+
       <div class="card">
-        <div class="h2">Start workout</div>
-        <div class="sub">Pick a template and log fast.</div>
+        <div class="h2">Today’s macros</div>
+        <div class="sub">Keep it simple: hit calories + protein.</div>
         <div class="hr"></div>
-        <div class="list">
-          ${state.templates.map(tpl => `
-            <button class="templateBtn" data-action="startTemplate" data-id="${tpl.id}">
-              <div><div class="name">${escapeHtml(tpl.name)}</div><div class="meta">${escapeHtml(tpl.subtitle || "")}</div></div>
-              <div class="tag">${tpl.exercises.length} exercises</div>
-            </button>
-          `).join("")}
+
+        <div style="margin-top:4px">
+          <div class="sub">Calories ${todayM.calories}/${t.calories}</div>
+          <div class="progress"><div style="width:${pct(todayM.calories,t.calories)}%"></div></div>
+        </div>
+        <div style="margin-top:10px">
+          <div class="sub">Protein ${todayM.protein}g/${t.protein}g</div>
+          <div class="progress"><div style="width:${pct(todayM.protein,t.protein)}%"></div></div>
+        </div>
+
+        <div class="row wrap" style="margin-top:12px">
+          <button class="btn small" data-action="editMacroTargets">Log macros</button>
         </div>
       </div>
 
       <div class="card">
         <div class="h2">Weekly plan</div>
-        <div class="sub">Tap a day to set a workout. Tap the workout name to start.</div>
+        <div class="sub">Tap a day to set a workout.</div>
         <div class="hr"></div>
-        <div class="calGrid">
-          ${days.map(d => `
-            <div class="day ${d.isToday?"today":""} ${dayCompleted(d.date)?"done":""}" data-action="planDay" data-date="${d.date}">
-              <div class="d1">${d.label}</div>
-              <div class="d2">${escapeHtml(plannedTemplateName(d.date))}</div>
-            </div>
+
+        <div class="weekPills">
+          ${days.map(d => {
+            const name = plannedTemplateName(d.date);
+            const isRest = name==="Rest";
+            return `
+              <button class="dayPill ${d.isToday?"today":""} ${dayCompleted(d.date)?"done":""} ${isRest?"rest":""}"
+                data-action="planDay" data-date="${d.date}">
+                <div class="dp1">${d.label}</div>
+                <div class="dp2">${escapeHtml(isRest ? "Rest" : name)}</div>
+              </button>
+            `;
+          }).join("")}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="h2">Templates</div>
+        <div class="sub">Tap to start. Keep it fast.</div>
+        <div class="hr"></div>
+        <div class="list">
+          ${state.templates.map(tpl => `
+            <button class="templateBtn" data-action="startTemplate" data-id="${tpl.id}">
+              <div>
+                <div class="name">${escapeHtml(tpl.name)}</div>
+                <div class="meta">${escapeHtml(tpl.subtitle || "")}</div>
+              </div>
+              <div class="tag">${tpl.exercises.length}</div>
+            </button>
           `).join("")}
         </div>
       </div>
@@ -1236,6 +1264,23 @@
     if(a==="openBackup"){ openBackupSheet(); return; }
     if(a==="quickAddWeight"){ setTab("tracker"); render(); setTimeout(()=>document.getElementById("weightInput")?.focus(), 50); return; }
     if(a==="goTracker"){ setTab("tracker"); return; }
+
+
+    if(a==="startToday"){
+      const today = isoDate(new Date());
+      const id = plannedTemplateId(today);
+      if(id){
+        const s = createSessionFromTemplate(id, today);
+        if(s){ state.activeSessionId = s.id; render(); toast("Session started ✅"); }
+      }else{
+        // No plan set — jump user to Templates section on Home
+        toast("Pick a template for today");
+        // simple scroll to templates card if on home
+        requestAnimationFrame(()=>document.querySelector(".card:last-of-type")?.scrollIntoView({behavior:"smooth",block:"start"}));
+      }
+      return;
+    }
+
 
     if(a==="startTemplate"){
       const id = act.getAttribute("data-id");

@@ -61,7 +61,7 @@ body::before{
   padding:16px;
   box-shadow:var(--shadow);
 }
-.card + .card{margin-top:12px}
+.card + .card{margin-top:10px}
 .h2{font-size:20px;font-weight:950;margin:0 0 8px}
 .sub{color:var(--muted);font-size:12px;line-height:1.45}
 .hr{height:1px;background:rgba(255,255,255,.10);margin:12px 0}
@@ -214,7 +214,7 @@ canvas.chart{width:100%;height:120px;display:block}
 
 .nav{
   position:fixed;left:0;right:0;bottom:0;
-  padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+  padding:8px 10px calc(8px + env(safe-area-inset-bottom));
   background:rgba(11,11,16,.92);
   border-top:1px solid rgba(255,255,255,.10);
   backdrop-filter:blur(14px);
@@ -227,14 +227,14 @@ canvas.chart{width:100%;height:120px;display:block}
   gap:10px;
 }
 .navbtn{
-  border-radius:16px;
+  border-radius:14px;
   border:1px solid rgba(255,255,255,.12);
   background:rgba(20,20,27,.72);
   color:var(--text);
   font-weight:900;
-  padding:10px 6px;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
-  font-size:11px;
+  padding:8px 6px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  font-size:10px;
 }
 .navbtn .ico{font-size:18px;line-height:1}
 .navbtn.active{background:rgba(0,200,255,.14);border-color:rgba(0,200,255,.28)}
@@ -305,3 +305,76 @@ canvas.chart{width:100%;height:120px;display:block}
   cursor: pointer;
 }
 .videoPlay:active{ transform: scale(.98); }
+
+
+/* --- Premium Home --- */
+.dashCard .h2{margin-bottom:6px}
+.primaryStart{
+  width:100%;
+  border:1px solid rgba(255,255,255,.12);
+  background: radial-gradient(1200px 180px at 20% 0%, rgba(120,120,255,.10), transparent 55%),
+              rgba(20,20,27,.75);
+  border-radius: 22px;
+  padding:16px 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  position:relative;
+  display:block;
+  text-align:left;
+  margin:10px 0;
+}
+.primaryStart:active{ transform: scale(.99); }
+.psTop{
+  font-weight: 950;
+  letter-spacing: .10em;
+  font-size: 12px;
+  color: rgba(235,235,245,.92);
+}
+.psSub{
+  margin-top:6px;
+  font-size: 18px;
+  font-weight: 950;
+  color: rgba(255,255,255,.96);
+}
+.psArrow{
+  position:absolute;
+  right:14px;
+  top:50%;
+  transform: translateY(-50%);
+  font-size: 28px;
+  color: rgba(255,255,255,.35);
+  font-weight: 700;
+}
+.weekPills{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.dayPill{
+  flex: 1 1 calc(50% - 10px);
+  min-width: 150px;
+  border-radius: 18px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(20,20,27,.62);
+  padding:12px 12px;
+  text-align:left;
+}
+.dayPill .dp1{
+  font-weight: 950;
+  font-size: 12px;
+  letter-spacing: .04em;
+  color: rgba(235,235,245,.85);
+}
+.dayPill .dp2{
+  margin-top:6px;
+  font-size: 14px;
+  font-weight: 900;
+  color: rgba(255,255,255,.92);
+}
+.dayPill.rest .dp2{ color: rgba(255,255,255,.45); font-weight:800; }
+.dayPill.today{ border-color: rgba(120,120,255,.30); background: rgba(120,120,255,.06); }
+.dayPill.done{ border-color: rgba(57,217,138,.28); background: rgba(57,217,138,.07); }
+@media (min-width:720px){
+  .dayPill{ flex: 1 1 calc(33.333% - 10px); }
+}
+/* Template tag smaller for premium */
+.templateBtn .tag{ min-width: 44px; text-align:center; }
