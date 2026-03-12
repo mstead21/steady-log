@@ -165,7 +165,8 @@
     settings:  load(KEY.settings, { units:"kg", plan:{} }), // plan: { "YYYY-MM-DD": templateId }
     activeSessionId: null,
     showSummaryFor: null,
-    exSearch: ""
+    exSearch: "",
+    pendingFocus: null
   };
 
   // ---------- DOM ----------
@@ -214,6 +215,20 @@
   }
   sheetBackdrop.addEventListener("click", closeSheet);
   sheetClose.addEventListener("click", closeSheet);
+
+  function focusPendingSetInput(){
+    const pf = state.pendingFocus;
+    if(!pf) return;
+    state.pendingFocus = null;
+    requestAnimationFrame(() => {
+      const sel = `[data-action="editSet"][data-ex="${pf.exIdx}"][data-set="${pf.si}"][data-field="${pf.field}"]`;
+      const el = document.querySelector(sel);
+      if(el && typeof el.focus === "function"){
+        el.focus();
+        if(typeof el.select === "function") el.select();
+      }
+    });
+  }
 
   // ---------- Rest timer ----------
   function stopTimer(){
@@ -601,6 +616,28 @@
     state.sessions.push(s);
     save(KEY.sessions, state.sessions);
     return s;
+  }
+
+  function ensureNextSetReady(session, exIdx, si){
+    const ex = session && session.exercises ? session.exercises[exIdx] : null;
+    if(!ex) return;
+    const curr = ex.sets && ex.sets[si] ? ex.sets[si] : null;
+    if(!curr) return;
+
+    let next = ex.sets[si+1];
+    if(!next){
+      next = { kg:"", reps:"", done:false };
+      ex.sets.push(next);
+    }
+
+    if(!next.kg && curr.kg) next.kg = curr.kg;
+    if(!next.reps && curr.reps) next.reps = curr.reps;
+
+    state.pendingFocus = {
+      exIdx,
+      si: si+1,
+      field: next.kg ? "reps" : "kg"
+    };
   }
 
   // ---------- Templates editor ----------
@@ -1050,7 +1087,7 @@
 
       <div class="card">
         <div class="h2">Exercises</div>
-        <div class="sub">Tick ✓ starts rest automatically. Suggestions appear when you’ve got history.</div>
+        <div class="sub">Tick ✓ saves the set, starts rest, and opens the next set automatically.</div>
         <div class="hr"></div>
 
         <div class="list">
@@ -1522,6 +1559,10 @@
       const exIdx = Number(act.getAttribute("data-ex"));
       const si = Number(act.getAttribute("data-set"));
       const ex = s.exercises[exIdx]; if(!ex) return;
+      if((ex.sets||[]).length <= 1){
+        toast("Keep at least 1 set");
+        return;
+      }
       ex.sets.splice(si,1);
       save(KEY.sessions, state.sessions);
       render();
@@ -1534,6 +1575,11 @@
       const ex = s.exercises[exIdx]; if(!ex) return;
       const st = ex.sets[si]; if(!st) return;
       st.done = !st.done;
+      if(st.done){
+        ensureNextSetReady(s, exIdx, si);
+      } else {
+        state.pendingFocus = { exIdx, si, field: st.kg ? "reps" : "kg" };
+      }
       save(KEY.sessions, state.sessions);
       render();
       if(st.done){
