@@ -1,66 +1,473 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#0b0b10" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-  <title>Steady Log</title>
-
-  <link rel="manifest" href="./manifest.json?v=BEST_V3" />
-  <link rel="stylesheet" href="./styles.css?v=BEST_V3" />
-  <link rel="apple-touch-icon" href="./icon-192.png" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Steady Log V2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="app">
-    <header class="top">
+  <div class="app-shell">
+    <aside class="sidebar">
       <div class="brand">
-        <div class="logo">SL</div>
-        <div class="brandText">
-          <div class="brandTitle">Steady Log</div>
-          <div class="brandSub">Weights • Tracking • PRs</div>
+        <div class="brand-badge">SL</div>
+        <div>
+          <h1>Steady Log</h1>
+          <p>V2 Premium Tracker</p>
         </div>
       </div>
-      <div class="topRight">
-        <div class="pill" id="pillStatus">Ready</div>
-      </div>
-    </header>
 
-    <main id="view" class="view"></main>
+      <nav class="nav">
+        <button class="nav-link active" data-section="dashboard">Dashboard</button>
+        <button class="nav-link" data-section="workout">Workout Log</button>
+        <button class="nav-link" data-section="progress">Progress</button>
+        <button class="nav-link" data-section="nutrition">Nutrition</button>
+        <button class="nav-link" data-section="cardio">Cardio</button>
+        <button class="nav-link" data-section="videos">Exercise Videos</button>
+        <button class="nav-link" data-section="history">History</button>
+      </nav>
 
-    <nav class="nav" id="nav"></nav>
-
-    <div class="toast" id="toast" role="status" aria-live="polite"></div>
-
-    <div class="restBar" id="restBar" hidden>
-      <div class="restBarInner">
-        <div class="restLeft">
-          <div class="restLabel">Rest</div>
-          <div class="restTime" id="restTime">--</div>
-        </div>
-        <div class="restBtns">
-          <button class="btn small" id="restPlus15" type="button">+15</button>
-          <button class="btn small" id="restPlus30" type="button">+30</button>
-          <button class="btn danger small" id="restStop" type="button">Stop</button>
+      <div class="sidebar-footer">
+        <div class="mini-card">
+          <span class="label">Focus</span>
+          <strong id="focusText">Train. Track. Progress. Repeat.</strong>
         </div>
       </div>
-    </div>
+    </aside>
 
-    <div class="sheetBackdrop" id="sheetBackdrop" hidden></div>
-    <div class="sheet" id="sheet" hidden>
-      <div class="sheetHandle"></div>
-      <div class="sheetHead">
-        <div class="sheetTitle" id="sheetTitle">Edit</div>
-        <button class="btn danger small" id="sheetClose" type="button">Close</button>
-      </div>
-      <div class="hr"></div>
-      <div id="sheetBody"></div>
-    </div>
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Transformation dashboard</p>
+          <h2 id="pageTitle">Dashboard</h2>
+        </div>
+        <div class="topbar-actions">
+          <button class="ghost-btn" id="exportDataBtn">Export Data</button>
+          <button class="primary-btn" id="resetDemoBtn">Load Demo Data</button>
+        </div>
+      </header>
 
-    <div class="err" id="err" hidden></div>
+      <section id="dashboard" class="page-section active">
+        <div class="hero-card">
+          <div>
+            <p class="eyebrow">Today at a glance</p>
+            <h3 id="heroWorkout">Upper Body Day</h3>
+            <p id="heroSubtitle">Stay consistent and keep the standard high.</p>
+          </div>
+          <div class="hero-stats">
+            <div>
+              <span>Weight</span>
+              <strong id="heroWeight">-- kg</strong>
+            </div>
+            <div>
+              <span>Calories</span>
+              <strong id="heroCalories">--</strong>
+            </div>
+            <div>
+              <span>Steps</span>
+              <strong id="heroSteps">--</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="cards-grid four">
+          <article class="stat-card">
+            <span class="label">Today’s Workout</span>
+            <strong id="dashWorkoutType">--</strong>
+            <small id="dashWorkoutStatus">No session logged</small>
+          </article>
+          <article class="stat-card">
+            <span class="label">Weekly Average</span>
+            <strong id="dashWeeklyAverage">-- kg</strong>
+            <small>Based on weight entries</small>
+          </article>
+          <article class="stat-card">
+            <span class="label">Protein</span>
+            <strong id="dashProtein">-- g</strong>
+            <small>Target vs actual</small>
+          </article>
+          <article class="stat-card">
+            <span class="label">Cardio Total</span>
+            <strong id="dashCardio">-- min</strong>
+            <small>Current 7 days</small>
+          </article>
+        </div>
+
+        <div class="cards-grid two">
+          <article class="panel">
+            <div class="panel-head">
+              <h3>Quick Check-In</h3>
+              <span class="pill">Daily</span>
+            </div>
+            <form id="quickCheckinForm" class="form-grid compact">
+              <label>
+                Weight (kg)
+                <input type="number" step="0.1" id="quickWeight" placeholder="95.0" />
+              </label>
+              <label>
+                Calories
+                <input type="number" id="quickCalories" placeholder="1950" />
+              </label>
+              <label>
+                Steps
+                <input type="number" id="quickSteps" placeholder="12000" />
+              </label>
+              <label>
+                Workout
+                <select id="quickWorkoutType">
+                  <option>Upper Body</option>
+                  <option>Lower Body</option>
+                  <option>Cardio</option>
+                  <option>Rest Day</option>
+                </select>
+              </label>
+              <button type="submit" class="primary-btn full">Save Daily Check-In</button>
+            </form>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <h3>Consistency Score</h3>
+              <span class="pill accent">7 days</span>
+            </div>
+            <div class="score-wrap">
+              <div class="score-ring">
+                <strong id="consistencyScore">0%</strong>
+              </div>
+              <div>
+                <p id="consistencyText">No recent activity yet.</p>
+                <ul class="clean-list">
+                  <li>Weight log</li>
+                  <li>Workout log</li>
+                  <li>Nutrition log</li>
+                  <li>Cardio log</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="workout" class="page-section">
+        <div class="cards-grid two">
+          <article class="panel">
+            <div class="panel-head">
+              <h3>Workout Logger</h3>
+              <span class="pill">Strength</span>
+            </div>
+            <form id="workoutForm" class="form-grid">
+              <label>
+                Date
+                <input type="date" id="workoutDate" />
+              </label>
+              <label>
+                Session Type
+                <select id="sessionType">
+                  <option>Upper Body</option>
+                  <option>Lower Body</option>
+                  <option>Push</option>
+                  <option>Pull</option>
+                  <option>Legs</option>
+                  <option>Cardio</option>
+                </select>
+              </label>
+              <label>
+                Exercise
+                <input type="text" id="exerciseName" placeholder="Incline Chest Press" />
+              </label>
+              <label>
+                Previous Best
+                <input type="text" id="previousBest" placeholder="80kg x 8" />
+              </label>
+              <label>
+                Target
+                <input type="text" id="targetLift" placeholder="82.5kg x 8" />
+              </label>
+              <label>
+                Completed Sets
+                <input type="text" id="completedSets" placeholder="82.5x8, 80x8, 75x10" />
+              </label>
+              <label class="full">
+                Notes
+                <textarea id="workoutNotes" rows="4" placeholder="How it felt, form notes, energy, anything important..."></textarea>
+              </label>
+              <button type="submit" class="primary-btn full">Add Workout Entry</button>
+            </form>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <h3>Rest Timer</h3>
+              <span class="pill accent">Floating</span>
+            </div>
+            <div class="timer-panel">
+              <div id="timerDisplay">01:00</div>
+              <div class="timer-buttons">
+                <button class="ghost-btn timer-preset" data-seconds="45">45s</button>
+                <button class="ghost-btn timer-preset" data-seconds="60">60s</button>
+                <button class="ghost-btn timer-preset" data-seconds="90">90s</button>
+                <button class="ghost-btn timer-preset" data-seconds="120">120s</button>
+              </div>
+              <div class="timer-actions">
+                <button class="primary-btn" id="startTimerBtn">Start</button>
+                <button class="ghost-btn" id="pauseTimerBtn">Pause</button>
+                <button class="ghost-btn" id="resetTimerBtn">Reset</button>
+              </div>
+              <p class="muted">Use the floating timer button in the bottom-right while logging workouts.</p>
+            </div>
+          </article>
+        </div>
+
+        <article class="panel">
+          <div class="panel-head">
+            <h3>Latest Workout Entries</h3>
+            <span class="pill">Recent</span>
+          </div>
+          <div id="workoutList" class="stack-list empty-state">No workout entries yet.</div>
+        </article>
+      </section>
+
+      <section id="progress" class="page-section">
+        <div class="cards-grid two">
+          <article class="panel">
+            <div class="panel-head">
+              <h3>Progress Tracker</h3>
+              <span class="pill">Body Metrics</span>
+            </div>
+            <form id="progressForm" class="form-grid compact">
+              <label>
+                Date
+                <input type="date" id="progressDate" />
+              </label>
+              <label>
+                Weight (kg)
+                <input type="number" step="0.1" id="progressWeight" />
+              </label>
+              <label>
+                Waist (cm)
+                <input type="number" step="0.1" id="progressWaist" />
+              </label>
+              <label>
+                Chest (cm)
+                <input type="number" step="0.1" id="progressChest" />
+              </label>
+              <label>
+                Arms (cm)
+                <input type="number" step="0.1" id="progressArms" />
+              </label>
+              <label>
+                Notes
+                <input type="text" id="progressNotes" placeholder="Leaned out, fuller, flat, etc." />
+              </label>
+              <button type="submit" class="primary-btn full">Save Progress Entry</button>
+            </form>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <h3>Weight Trend</h3>
+              <span class="pill accent">Simple chart</span>
+            </div>
+            <div class="chart-card">
+              <canvas id="weightChart" width="800" height="320"></canvas>
+            </div>
+          </article>
+        </div>
+
+        <article class="panel">
+          <div class="panel-head">
+            <h3>Progress History</h3>
+            <span class="pill">Tracking</span>
+          </div>
+          <div id="progressTableWrap" class="table-wrap"></div>
+        </article>
+      </section>
+
+      <section id="nutrition" class="page-section">
+        <div class="cards-grid two">
+          <article class="panel">
+            <div class="panel-head">
+              <h3>Nutrition Log</h3>
+              <span class="pill">Macros</span>
+            </div>
+            <form id="nutritionForm" class="form-grid compact">
+              <label>
+                Date
+                <input type="date" id="nutritionDate" />
+              </label>
+              <label>
+                Calories
+                <input type="number" id="nutritionCalories" />
+              </label>
+              <label>
+                Protein (g)
+                <input type="number" id="nutritionProtein" />
+              </label>
+              <label>
+                Carbs (g)
+                <input type="number" id="nutritionCarbs" />
+              </label>
+              <label>
+                Fats (g)
+                <input type="number" id="nutritionFats" />
+              </label>
+              <label>
+                Water (litres)
+                <input type="number" step="0.1" id="nutritionWater" />
+              </label>
+              <label class="full checkbox-row">
+                <span>Meal checklist</span>
+                <div class="checks">
+                  <label><input type="checkbox" class="meal-check" value="Shake 1" /> Shake 1</label>
+                  <label><input type="checkbox" class="meal-check" value="Post-workout" /> Post-workout</label>
+                  <label><input type="checkbox" class="meal-check" value="Meal 1" /> Meal 1</label>
+                  <label><input type="checkbox" class="meal-check" value="Meal 2" /> Meal 2</label>
+                  <label><input type="checkbox" class="meal-check" value="Meal 3" /> Meal 3</label>
+                  <label><input type="checkbox" class="meal-check" value="Evening" /> Evening</label>
+                </div>
+              </label>
+              <label class="full checkbox-row">
+                <span>Supplements taken</span>
+                <div class="checks">
+                  <label><input type="checkbox" class="supp-check" value="Multi" /> Multi</label>
+                  <label><input type="checkbox" class="supp-check" value="Cod Liver Oil" /> Cod Liver Oil</label>
+                  <label><input type="checkbox" class="supp-check" value="Magnesium" /> Magnesium</label>
+                  <label><input type="checkbox" class="supp-check" value="Ashwagandha" /> Ashwagandha</label>
+                  <label><input type="checkbox" class="supp-check" value="Milk Thistle" /> Milk Thistle</label>
+                  <label><input type="checkbox" class="supp-check" value="Collagen" /> Collagen</label>
+                </div>
+              </label>
+              <button type="submit" class="primary-btn full">Save Nutrition Entry</button>
+            </form>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <h3>Nutrition Snapshot</h3>
+              <span class="pill accent">Latest</span>
+            </div>
+            <div id="nutritionSnapshot" class="stack-list empty-state">No nutrition entries yet.</div>
+          </article>
+        </div>
+      </section>
+
+      <section id="cardio" class="page-section">
+        <div class="cards-grid two">
+          <article class="panel">
+            <div class="panel-head">
+              <h3>Cardio Dashboard</h3>
+              <span class="pill">Conditioning</span>
+            </div>
+            <form id="cardioForm" class="form-grid compact">
+              <label>
+                Date
+                <input type="date" id="cardioDate" />
+              </label>
+              <label>
+                Type
+                <select id="cardioType">
+                  <option>Treadmill</option>
+                  <option>Stair Climber</option>
+                  <option>Outdoor Walk</option>
+                  <option>Run</option>
+                  <option>Bike</option>
+                </select>
+              </label>
+              <label>
+                Minutes
+                <input type="number" id="cardioMinutes" />
+              </label>
+              <label>
+                Distance / Extra
+                <input type="text" id="cardioDistance" placeholder="3.5 miles / Level 7 / 12 incline" />
+              </label>
+              <label>
+                Steps
+                <input type="number" id="cardioSteps" />
+              </label>
+              <label>
+                Notes
+                <input type="text" id="cardioNotes" placeholder="Felt easy, hard, steady..." />
+              </label>
+              <button type="submit" class="primary-btn full">Save Cardio Entry</button>
+            </form>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <h3>Weekly Totals</h3>
+              <span class="pill accent">7 days</span>
+            </div>
+            <div class="cards-grid two inner-grid">
+              <article class="stat-card small">
+                <span class="label">Minutes</span>
+                <strong id="cardioWeeklyMinutes">0</strong>
+              </article>
+              <article class="stat-card small">
+                <span class="label">Sessions</span>
+                <strong id="cardioWeeklySessions">0</strong>
+              </article>
+              <article class="stat-card small">
+                <span class="label">Steps</span>
+                <strong id="cardioWeeklySteps">0</strong>
+              </article>
+              <article class="stat-card small">
+                <span class="label">Consistency</span>
+                <strong id="cardioConsistency">0%</strong>
+              </article>
+            </div>
+          </article>
+        </div>
+
+        <article class="panel">
+          <div class="panel-head">
+            <h3>Recent Cardio Sessions</h3>
+            <span class="pill">Log</span>
+          </div>
+          <div id="cardioList" class="stack-list empty-state">No cardio entries yet.</div>
+        </article>
+      </section>
+
+      <section id="videos" class="page-section">
+        <article class="panel">
+          <div class="panel-head">
+            <h3>Exercise Videos</h3>
+            <span class="pill">Favourites + grouped</span>
+          </div>
+          <div class="video-toolbar">
+            <input type="text" id="videoSearch" placeholder="Search exercise videos..." />
+          </div>
+          <div id="videoGrid" class="cards-grid three"></div>
+        </article>
+      </section>
+
+      <section id="history" class="page-section">
+        <div class="cards-grid two">
+          <article class="panel">
+            <div class="panel-head">
+              <h3>Recent Activity</h3>
+              <span class="pill">All sections</span>
+            </div>
+            <div id="historyFeed" class="stack-list empty-state">No activity yet.</div>
+          </article>
+          <article class="panel">
+            <div class="panel-head">
+              <h3>Notes / Planning</h3>
+              <span class="pill accent">Daily use</span>
+            </div>
+            <textarea id="planningNotes" class="big-notes" placeholder="Plan tomorrow's session, write reminders, track how prep is going..."></textarea>
+            <button class="primary-btn" id="saveNotesBtn">Save Notes</button>
+          </article>
+        </div>
+      </section>
+    </main>
   </div>
 
-  <script src="./app.js?v=BEST_V3"></script>
+  <button id="floatingTimerBtn" class="floating-timer" title="Open timer">⏱ <span id="floatingTimerText">01:00</span></button>
+
+  <script src="script.js"></script>
 </body>
 </html>

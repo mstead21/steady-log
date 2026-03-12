@@ -1,12 +1,24 @@
-Steady Log v1.3 (Mobile Optimised)
-Upload ALL files to your repo ROOT (overwrite existing).
+STEADY LOG V2
 
-Fixes:
-- Portrait: Start buttons stack (no bunching)
-- Portrait: Set rows become 2 lines (KG/Reps on top, ✓/🗑 below)
-- Footer becomes 2x2 grid on portrait
-- KG/Reps open number pads
+Files included:
+- index.html
+- styles.css
+- script.js
 
-After upload (one-time):
-iPhone -> Settings -> Safari -> Advanced -> Website Data -> delete mstead21.github.io
-Reload site in Safari -> Share -> Add to Home Screen
+How to use:
+1. Put all 3 files in the same folder.
+2. Double-click index.html to open in your browser.
+3. The app saves your data in browser local storage automatically.
+4. Use Export Data to download your saved data as JSON.
+
+Main upgrades included:
+- Premium dashboard layout
+- Daily quick check-in
+- Workout logger with previous best / target / completed sets / notes
+- Floating rest timer with presets
+- Progress tracker + weight chart
+- Nutrition tracker with meal and supplement checklist
+- Cardio dashboard with weekly totals
+- Exercise videos section
+- History feed and planning notes
+- Demo data button to preview the app instantly
