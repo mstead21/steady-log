@@ -1,185 +1,66 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0b10" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   <title>Steady Log</title>
-  <link rel="stylesheet" href="styles.css" />
+
+  <link rel="manifest" href="./manifest.json?v=BEST_V3" />
+  <link rel="stylesheet" href="./styles.css?v=BEST_V3" />
+  <link rel="apple-touch-icon" href="./icon-192.png" />
 </head>
 <body>
-  <div class="app-shell">
-    <header class="topbar">
-      <div>
-        <p class="eyebrow">STEADY LOG</p>
-        <h1>Simple Workout Logger</h1>
-        <p class="subtext">Built back around what matters: logging weights quickly and clearly.</p>
+  <div class="app">
+    <header class="top">
+      <div class="brand">
+        <div class="logo">SL</div>
+        <div class="brandText">
+          <div class="brandTitle">Steady Log</div>
+          <div class="brandSub">Weights • Tracking • PRs</div>
+        </div>
       </div>
-      <div class="top-actions">
-        <button id="loadDemoBtn" class="btn btn-secondary">Load Demo</button>
-        <button id="exportBtn" class="btn btn-secondary">Export JSON</button>
-        <button id="clearBtn" class="btn btn-danger">Clear Data</button>
+      <div class="topRight">
+        <div class="pill" id="pillStatus">Ready</div>
       </div>
     </header>
 
-    <main class="layout">
-      <section class="card span-8">
-        <div class="card-head">
-          <div>
-            <p class="eyebrow">TODAY</p>
-            <h2>Workout Entry</h2>
-          </div>
-          <div class="pill-row">
-            <span class="pill">Fast log</span>
-            <span class="pill">Saved locally</span>
-          </div>
-        </div>
+    <main id="view" class="view"></main>
 
-        <div class="form-grid">
-          <label>
-            Date
-            <input type="date" id="dateInput" />
-          </label>
-          <label>
-            Session
-            <select id="sessionInput">
-              <option>Upper Body</option>
-              <option>Lower Body</option>
-              <option>Push</option>
-              <option>Pull</option>
-              <option>Legs</option>
-              <option>Cardio</option>
-              <option>Full Body</option>
-            </select>
-          </label>
-          <label class="span-2">
-            Exercise
-            <input type="text" id="exerciseInput" placeholder="e.g. Incline Smith Press" list="exerciseSuggestions" />
-            <datalist id="exerciseSuggestions">
-              <option>Incline Smith Press</option>
-              <option>Chest Press Machine</option>
-              <option>Lat Pulldown</option>
-              <option>Seated Row</option>
-              <option>Shoulder Press Machine</option>
-              <option>Dumbbell Lateral Raise</option>
-              <option>Barbell Curl</option>
-              <option>Triceps Pushdown</option>
-              <option>Hack Squat</option>
-              <option>Leg Press</option>
-              <option>Romanian Deadlift</option>
-              <option>Leg Curl</option>
-              <option>Leg Extension</option>
-              <option>Calf Raise</option>
-              <option>Treadmill Walk</option>
-              <option>Stair Climber</option>
-            </datalist>
-          </label>
-        </div>
+    <nav class="nav" id="nav"></nav>
 
-        <div class="previous-box" id="previousBox">
-          No previous log found for this exercise yet.
-        </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-        <div class="sets-card">
-          <div class="sets-head">
-            <h3>Sets</h3>
-            <div class="inline-actions">
-              <button id="addSetBtn" class="btn btn-secondary btn-small">+ Add Set</button>
-              <button id="copyPrevBtn" class="btn btn-secondary btn-small">Copy Previous</button>
-            </div>
-          </div>
-
-          <div class="set-table-wrap">
-            <table class="set-table">
-              <thead>
-                <tr>
-                  <th>Set</th>
-                  <th>Weight</th>
-                  <th>Reps</th>
-                  <th>Notes</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="setsBody"></tbody>
-            </table>
-          </div>
+    <div class="restBar" id="restBar" hidden>
+      <div class="restBarInner">
+        <div class="restLeft">
+          <div class="restLabel">Rest</div>
+          <div class="restTime" id="restTime">--</div>
         </div>
-
-        <label class="notes-wrap">
-          Session Notes
-          <textarea id="sessionNotes" rows="3" placeholder="How did it feel? Any changes for next time?"></textarea>
-        </label>
-
-        <div class="bottom-actions">
-          <button id="saveWorkoutBtn" class="btn btn-primary">Save Workout</button>
+        <div class="restBtns">
+          <button class="btn small" id="restPlus15" type="button">+15</button>
+          <button class="btn small" id="restPlus30" type="button">+30</button>
+          <button class="btn danger small" id="restStop" type="button">Stop</button>
         </div>
-      </section>
+      </div>
+    </div>
 
-      <section class="card span-4">
-        <div class="card-head">
-          <div>
-            <p class="eyebrow">QUICK VIEW</p>
-            <h2>Summary</h2>
-          </div>
-        </div>
-        <div class="stats-grid">
-          <div class="stat-box">
-            <span>Total workouts</span>
-            <strong id="totalWorkouts">0</strong>
-          </div>
-          <div class="stat-box">
-            <span>Total sets</span>
-            <strong id="totalSets">0</strong>
-          </div>
-          <div class="stat-box">
-            <span>This week</span>
-            <strong id="weekCount">0</strong>
-          </div>
-          <div class="stat-box">
-            <span>Last session</span>
-            <strong id="lastSession">—</strong>
-          </div>
-        </div>
+    <div class="sheetBackdrop" id="sheetBackdrop" hidden></div>
+    <div class="sheet" id="sheet" hidden>
+      <div class="sheetHandle"></div>
+      <div class="sheetHead">
+        <div class="sheetTitle" id="sheetTitle">Edit</div>
+        <button class="btn danger small" id="sheetClose" type="button">Close</button>
+      </div>
+      <div class="hr"></div>
+      <div id="sheetBody"></div>
+    </div>
 
-        <div class="timer-box">
-          <p class="eyebrow">REST TIMER</p>
-          <div id="timerDisplay" class="timer-display">01:30</div>
-          <div class="timer-presets">
-            <button class="btn btn-secondary btn-small preset" data-seconds="45">45s</button>
-            <button class="btn btn-secondary btn-small preset" data-seconds="60">60s</button>
-            <button class="btn btn-secondary btn-small preset" data-seconds="90">90s</button>
-            <button class="btn btn-secondary btn-small preset" data-seconds="120">120s</button>
-          </div>
-          <div class="inline-actions">
-            <button id="startTimerBtn" class="btn btn-primary btn-small">Start</button>
-            <button id="pauseTimerBtn" class="btn btn-secondary btn-small">Pause</button>
-            <button id="resetTimerBtn" class="btn btn-secondary btn-small">Reset</button>
-          </div>
-        </div>
-      </section>
-
-      <section class="card span-12">
-        <div class="card-head">
-          <div>
-            <p class="eyebrow">HISTORY</p>
-            <h2>Workout Logs</h2>
-          </div>
-          <input id="searchInput" class="search-input" type="text" placeholder="Search exercise or session" />
-        </div>
-        <div id="historyList" class="history-list"></div>
-      </section>
-    </main>
+    <div class="err" id="err" hidden></div>
   </div>
 
-  <template id="setRowTemplate">
-    <tr>
-      <td class="set-number"></td>
-      <td><input type="number" step="0.5" min="0" class="weight-input" placeholder="kg" /></td>
-      <td><input type="number" step="1" min="0" class="reps-input" placeholder="reps" /></td>
-      <td><input type="text" class="set-notes-input" placeholder="optional" /></td>
-      <td><button class="remove-set" type="button">×</button></td>
-    </tr>
-  </template>
-
-  <script src="script.js"></script>
+  <script src="./app.js?v=BEST_V3"></script>
 </body>
 </html>
