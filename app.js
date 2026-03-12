@@ -47,14 +47,16 @@
     }catch(_){ return null; }
   }
   function youtubeThumbUrl(id){ return `https://img.youtube.com/vi/${id}/hqdefault.jpg`; }
-  function openVideo(queryOrUrl){
-  // Accept either a full URL or a search query string.
-  const isUrl = /^https?:\/\//i.test(String(queryOrUrl||""));
-  const url = isUrl ? String(queryOrUrl) : ("https://www.youtube.com/results?search_query=" + encodeURIComponent(String(queryOrUrl||"")));
-  const w = window.open(url, "_blank");
-  if (!w) window.location.href = url;
-}
-// ---------- Storage ----------
+  function openVideo(searchOrUrl){
+    const q = (searchOrUrl || "").trim();
+    if(!q) return;
+    const url = q.startsWith("http")
+      ? q
+      : "https://www.youtube.com/results?search_query=" + encodeURIComponent(q);
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  // ---------- Storage ----------
   const KEY = {
     sessions:  "steadylog.sessions.bestv3",
     templates: "steadylog.templates.bestv3",
@@ -88,50 +90,41 @@
     { name:"Seated Calf Raise", video:"seated calf raise machine", tags:["calves"] },
   ];
 
-      const DEFAULT_TEMPLATES = [
-    { id:"upper_push", name:"Upper Push", subtitle:"Chest + Shoulders + Triceps + Cardio",
+    const DEFAULT_TEMPLATES = [
+    { id:"upper_push", name:"Upper Push", subtitle:"Chest + Shoulders + Arms",
       exercises:[
-        { id:"smith_incline", name:"Smith Incline Bench Press", sets:4, reps:"6–8", rest:120, video:"https://www.youtube.com/watch?v=yFQshytandQ" },
-        { id:"chest_press", name:"Plate-Loaded Chest Press", sets:3, reps:"8–10", rest:90, video:"https://www.youtube.com/watch?v=WXhSQ77Z7TU" },
-        { id:"shoulder_press", name:"Machine Shoulder Press", sets:3, reps:"8–10", rest:90, video:"https://www.youtube.com/watch?v=TnhIyp4kmO8" },
-        { id:"lat_raise", name:"Dumbbell Lateral Raise", sets:3, reps:"12–20", rest:60, video:"https://www.youtube.com/watch?v=3VcKaXpzqRo" },
-        { id:"tri_pushdown", name:"Cable Tricep Pushdown", sets:3, reps:"10–15", rest:60, video:"https://www.youtube.com/watch?v=2-LAMcpzODU" },
-        { id:"cardio", name:"20 Min Cardio (Your Choice)", sets:1, reps:"20 mins", rest:0, video:"https://www.youtube.com/watch?v=ZyyHST8VK7M" },
+        { id:"smith_incline", name:"Smith Incline Bench Press", sets:4, reps:"6–8",  rest:120, video:"smith incline bench press" },
+        { id:"chest_press", name:"Plate-Loaded Chest Press", sets:3, reps:"8–10", rest:90,  video:"plate loaded chest press machine" },
+        { id:"shoulder_press", name:"Machine Shoulder Press", sets:3, reps:"8–10", rest:90,  video:"machine shoulder press" },
+        { id:"lat_raise", name:"Dumbbell Lateral Raise", sets:3, reps:"12–20", rest:60,  video:"dumbbell lateral raise strict form" },
+        { id:"tri_pushdown", name:"Cable Tricep Pushdown", sets:3, reps:"10–15", rest:60, video:"cable tricep pushdown form" },
+        { id:"preacher", name:"Preacher Curl Machine", sets:2, reps:"10–15", rest:60, video:"preacher curl machine" },
       ]
     },
     { id:"lower_quad", name:"Lower Quad", subtitle:"Quads + Calves",
       exercises:[
-        { id:"leg_press", name:"45° Leg Press", sets:4, reps:"8–12", rest:120, video:"https://www.youtube.com/watch?v=RJxiShv2ZQM" },
-        { id:"leg_ext", name:"Leg Extension", sets:3, reps:"12–15", rest:75, video:"https://www.youtube.com/watch?v=_95-vz83X4M" },
-        { id:"ham_curl", name:"Seated Hamstring Curl", sets:3, reps:"10–15", rest:75, video:"https://www.youtube.com/watch?v=_GHqBsmsd4E" },
-        { id:"calves", name:"Standing Calf Raise", sets:4, reps:"10–15", rest:60, video:"https://www.youtube.com/watch?v=GAQ-oohMhog" },
+        { id:"leg_press", name:"45° Leg Press", sets:4, reps:"8–12",  rest:120, video:"45 degree leg press proper form" },
+        { id:"leg_ext", name:"Leg Extension", sets:3, reps:"12–15", rest:75,  video:"leg extension machine form" },
+        { id:"ham_curl", name:"Seated Hamstring Curl", sets:3, reps:"10–15", rest:75, video:"seated hamstring curl form" },
+        { id:"calves", name:"Standing Calf Raise", sets:4, reps:"10–15", rest:60, video:"standing calf raise machine" },
       ]
     },
-    { id:"upper_pull", name:"Upper Pull", subtitle:"Back + Biceps + Cardio",
+    { id:"upper_pull", name:"Upper Pull", subtitle:"Back + Incline Machine + Arms",
       exercises:[
-        { id:"lat_pd", name:"Lat Pulldown (Slightly Wide Pronated)", sets:4, reps:"8–12", rest:90, video:"https://www.youtube.com/watch?v=SALxEARiMkw" },
-        { id:"row_cs", name:"Chest-Supported Row (Neutral Grip)", sets:3, reps:"8–12", rest:90, video:"https://www.youtube.com/watch?v=FU6YQawma2Q" },
-        { id:"tbar", name:"T-Bar Row (Slightly Wide Grip)", sets:3, reps:"8–12", rest:90, video:"https://www.youtube.com/watch?v=TyLoy3n_a10" },
-        { id:"facepull", name:"Face Pull", sets:3, reps:"12–20", rest:60, video:"https://www.youtube.com/watch?v=ljgqer1ZpXg" },
-        { id:"cable_curl", name:"Cable Curl", sets:3, reps:"10–15", rest:60, video:"https://www.youtube.com/watch?v=2MUEL4nL6hA" },
-        { id:"preacher", name:"Preacher Curl Machine", sets:2, reps:"10–15", rest:60, video:"https://www.youtube.com/watch?v=R-8Sa0_qiws" },
-        { id:"cardio2", name:"20 Min Cardio (Your Choice)", sets:1, reps:"20 mins", rest:0, video:"https://www.youtube.com/watch?v=ZyyHST8VK7M" },
+        { id:"lat_pd", name:"Lat Pulldown", sets:4, reps:"8–12", rest:90,  video:"lat pulldown proper form" },
+        { id:"row_cs", name:"Chest Supported Row Machine (Plate)", sets:3, reps:"8–12", rest:90,  video:"plate loaded chest supported row" },
+        { id:"incl_plate", name:"Plate-Loaded Incline Chest Press", sets:3, reps:"8–12", rest:90,  video:"plate loaded incline chest press machine" },
+        { id:"facepull", name:"Face Pull", sets:3, reps:"12–20", rest:60, video:"cable face pull correct form" },
+        { id:"cable_curl", name:"Cable Curl", sets:3, reps:"10–15", rest:60, video:"cable bicep curl form" },
       ]
     },
     { id:"lower_glute_ham", name:"Lower Glute/Ham", subtitle:"Hamstrings + Glutes + Calves",
       exercises:[
-        { id:"rdl", name:"Romanian Deadlift (BB/DB)", sets:4, reps:"6–10", rest:120, video:"https://www.youtube.com/watch?v=uhghy9pFIPY" },
-        { id:"hip_thrust", name:"Hip Thrust", sets:4, reps:"8–12", rest:120, video:"https://www.youtube.com/watch?v=Zp26q4BY5HE" },
-        { id:"ham_curl2", name:"Lying Hamstring Curl", sets:3, reps:"10–15", rest:75, video:"https://www.youtube.com/watch?v=i6m3Vp9H40Y" },
-        { id:"abduct", name:"Hip Abductor", sets:3, reps:"12–20", rest:60, video:"https://www.youtube.com/watch?v=OjI5OpV6IWA" },
-        { id:"calves2", name:"Seated Calf Raise", sets:3, reps:"10–15", rest:60, video:"https://www.youtube.com/watch?v=GAQ-oohMhog" },
-      ]
-    },
-    { id:"wednesday_core", name:"Wednesday Core + Cardio", subtitle:"Abs + 20 Min Cardio",
-      exercises:[
-        { id:"crunch", name:"Cable Crunch", sets:3, reps:"12–15", rest:60, video:"https://www.youtube.com/watch?v=NJQROeaBiVE" },
-        { id:"knee_raise", name:"Hanging Knee Raise", sets:3, reps:"Controlled", rest:60, video:"https://www.youtube.com/watch?v=7ciyU76b4UU" },
-        { id:"cardio3", name:"20 Min Cardio (Your Choice)", sets:1, reps:"20 mins", rest:0, video:"https://www.youtube.com/watch?v=ZyyHST8VK7M" },
+        { id:"rdl", name:"Romanian Deadlift (BB/DB)", sets:4, reps:"6–10", rest:120, video:"romanian deadlift barbell form" },
+        { id:"hip_thrust", name:"Hip Thrust", sets:4, reps:"8–12", rest:120, video:"barbell hip thrust form" },
+        { id:"ham_curl2", name:"Lying Hamstring Curl", sets:3, reps:"10–15", rest:75,  video:"lying hamstring curl form" },
+        { id:"abduct", name:"Hip Abductor", sets:3, reps:"12–20", rest:60,  video:"hip abductor machine form" },
+        { id:"calves2", name:"Seated Calf Raise", sets:3, reps:"10–15", rest:60,  video:"seated calf raise machine" },
       ]
     },
   ];
@@ -762,22 +755,15 @@
     const mon = mondayOfThisWeek();
     const days = weekDays(mon);
 
-    const todayStr = isoDate(new Date());
-    const todayPlanId = plannedTemplateId(todayStr);
-    const todayPlanName = plannedTemplateName(todayStr);
-
     function pct(v, target){
       if(!target) return 0;
       return Math.max(0, Math.min(100, Math.round((v/target)*100)));
     }
 
-    const startSub = todayPlanId ? escapeHtml(todayPlanName) : "Tap to choose today’s workout";
-
     return `
-      <div class="card dashCard">
+      <div class="card">
         <div class="h2">Dashboard</div>
         <div class="sub">Snapshot + momentum.</div>
-
         <div class="hr"></div>
 
         <div class="grid">
@@ -785,6 +771,32 @@
           <div class="stat"><div class="statVal">${last ? fmtShort(last.startedAt) : "—"}</div><div class="statLab">last session</div></div>
           <div class="stat"><div class="statVal">${streak} 🔥</div><div class="statLab">workout streak</div></div>
           <div class="stat"><div class="statVal">${mStreak} ✅</div><div class="statLab">macros streak</div></div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="row wrap">
+          <div style="flex:1;min-width:260px">
+            <div class="sub">Today’s macros</div>
+            <div style="margin-top:8px">
+              <div class="sub">Calories ${todayM.calories}/${t.calories}</div>
+              <div class="progress"><div style="width:${pct(todayM.calories,t.calories)}%"></div></div>
+            </div>
+            <div style="margin-top:8px">
+              <div class="sub">Protein ${todayM.protein}g/${t.protein}g</div>
+              <div class="progress"><div style="width:${pct(todayM.protein,t.protein)}%"></div></div>
+            </div>
+          </div>
+
+          <div style="flex:1;min-width:260px">
+            <div class="sub">7-day avg weight</div>
+            <div class="h2" style="margin:10px 0 0">${wAvg ? wAvg.toFixed(1)+" kg" : "—"}</div>
+            <div class="row wrap" style="margin-top:10px">
+              <button class="btn small primary" data-action="quickAddWeight">+ Weight</button>
+              <button class="btn small" data-action="goTracker">Open Tracker</button>
+              <button class="btn small gold" data-action="openBackup">Backup</button>
+            </div>
+          </div>
         </div>
 
         <div class="hr"></div>
@@ -799,79 +811,32 @@
             <div class="canvasWrap"><canvas class="chart" id="chartWorkouts"></canvas></div>
           </div>
         </div>
-
-        <div class="hr"></div>
-
-        <div class="row wrap" style="justify-content:space-between;align-items:center">
-          <div>
-            <div class="sub">7‑day avg weight</div>
-            <div class="h2" style="margin:6px 0 0">${wAvg ? wAvg.toFixed(1)+" kg" : "—"}</div>
-          </div>
-          <div class="row wrap" style="gap:8px">
-            <button class="btn small primary" data-action="quickAddWeight">+ Weight</button>
-            <button class="btn small" data-action="goTracker">Tracker</button>
-          </div>
-        </div>
       </div>
 
-      <button class="primaryStart" data-action="startToday">
-        <div class="psTop">START WORKOUT</div>
-        <div class="psSub">${startSub}</div>
-        <div class="psArrow">›</div>
-      </button>
-
       <div class="card">
-        <div class="h2">Today’s macros</div>
-        <div class="sub">Keep it simple: hit calories + protein.</div>
+        <div class="h2">Start workout</div>
+        <div class="sub">Pick a template and log fast.</div>
         <div class="hr"></div>
-
-        <div style="margin-top:4px">
-          <div class="sub">Calories ${todayM.calories}/${t.calories}</div>
-          <div class="progress"><div style="width:${pct(todayM.calories,t.calories)}%"></div></div>
-        </div>
-        <div style="margin-top:10px">
-          <div class="sub">Protein ${todayM.protein}g/${t.protein}g</div>
-          <div class="progress"><div style="width:${pct(todayM.protein,t.protein)}%"></div></div>
-        </div>
-
-        <div class="row wrap" style="margin-top:12px">
-          <button class="btn small" data-action="editMacroTargets">Log macros</button>
+        <div class="list">
+          ${state.templates.map(tpl => `
+            <button class="templateBtn" data-action="startTemplate" data-id="${tpl.id}">
+              <div><div class="name">${escapeHtml(tpl.name)}</div><div class="meta">${escapeHtml(tpl.subtitle || "")}</div></div>
+              <div class="tag">${tpl.exercises.length} exercises</div>
+            </button>
+          `).join("")}
         </div>
       </div>
 
       <div class="card">
         <div class="h2">Weekly plan</div>
-        <div class="sub">Tap a day to set a workout.</div>
+        <div class="sub">Tap a day to set a workout. Tap the workout name to start.</div>
         <div class="hr"></div>
-
-        <div class="weekPills">
-          ${days.map(d => {
-            const name = plannedTemplateName(d.date);
-            const isRest = name==="Rest";
-            return `
-              <button class="dayPill ${d.isToday?"today":""} ${dayCompleted(d.date)?"done":""} ${isRest?"rest":""}"
-                data-action="planDay" data-date="${d.date}">
-                <div class="dp1">${d.label}</div>
-                <div class="dp2">${escapeHtml(isRest ? "Rest" : name)}</div>
-              </button>
-            `;
-          }).join("")}
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="h2">Templates</div>
-        <div class="sub">Tap to start. Keep it fast.</div>
-        <div class="hr"></div>
-        <div class="list">
-          ${state.templates.map(tpl => `
-            <button class="templateBtn" data-action="startTemplate" data-id="${tpl.id}">
-              <div>
-                <div class="name">${escapeHtml(tpl.name)}</div>
-                <div class="meta">${escapeHtml(tpl.subtitle || "")}</div>
-              </div>
-              <div class="tag">${tpl.exercises.length}</div>
-            </button>
+        <div class="calGrid">
+          ${days.map(d => `
+            <div class="day ${d.isToday?"today":""} ${dayCompleted(d.date)?"done":""}" data-action="planDay" data-date="${d.date}">
+              <div class="d1">${d.label}</div>
+              <div class="d2">${escapeHtml(plannedTemplateName(d.date))}</div>
+            </div>
           `).join("")}
         </div>
       </div>
@@ -1101,7 +1066,13 @@
             const isPR = (bestNow!==null) && (bestBefore===null || bestNow>bestBefore);
 
             const videoBlock = vs ? `
-              <button class="videoPlay" type="button" data-action="video" data-ex="${exIdx}" aria-label="Play video">▶</button>` : "";
+              <div class="videoMini" data-action="video" data-ex="${exIdx}">
+                ${thumb ? `<img class="videoThumb" src="${thumb}" alt="YouTube thumbnail">` : `<div class="videoThumbFallback">▶</div>`}
+                <div>
+                  <div style="font-weight:950;font-size:12px">Video</div>
+                  <div style="font-size:11px;color:rgba(233,233,242,.7)">${vid ? "Watch on YouTube" : "Search on YouTube"}</div>
+                </div>
+              </div>` : "";
 
             return `
               <div class="exercise">
@@ -1264,23 +1235,6 @@
     if(a==="openBackup"){ openBackupSheet(); return; }
     if(a==="quickAddWeight"){ setTab("tracker"); render(); setTimeout(()=>document.getElementById("weightInput")?.focus(), 50); return; }
     if(a==="goTracker"){ setTab("tracker"); return; }
-
-
-    if(a==="startToday"){
-      const today = isoDate(new Date());
-      const id = plannedTemplateId(today);
-      if(id){
-        const s = createSessionFromTemplate(id, today);
-        if(s){ state.activeSessionId = s.id; render(); toast("Session started ✅"); }
-      }else{
-        // No plan set — jump user to Templates section on Home
-        toast("Pick a template for today");
-        // simple scroll to templates card if on home
-        requestAnimationFrame(()=>document.querySelector(".card:last-of-type")?.scrollIntoView({behavior:"smooth",block:"start"}));
-      }
-      return;
-    }
-
 
     if(a==="startTemplate"){
       const id = act.getAttribute("data-id");
