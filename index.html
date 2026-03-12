@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Steady Log V2</title>
+  <title>Steady Log V3</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -16,457 +16,326 @@
         <div class="brand-badge">SL</div>
         <div>
           <h1>Steady Log</h1>
-          <p>V2 Premium Tracker</p>
+          <p>V3 Transformation App</p>
         </div>
       </div>
 
       <nav class="nav">
-        <button class="nav-link active" data-section="dashboard">Dashboard</button>
-        <button class="nav-link" data-section="workout">Workout Log</button>
-        <button class="nav-link" data-section="progress">Progress</button>
-        <button class="nav-link" data-section="nutrition">Nutrition</button>
-        <button class="nav-link" data-section="cardio">Cardio</button>
-        <button class="nav-link" data-section="videos">Exercise Videos</button>
-        <button class="nav-link" data-section="history">History</button>
+        <button class="nav-btn active" data-section="dashboard">Dashboard</button>
+        <button class="nav-btn" data-section="workout">Workout</button>
+        <button class="nav-btn" data-section="progress">Progress</button>
+        <button class="nav-btn" data-section="nutrition">Nutrition</button>
+        <button class="nav-btn" data-section="cardio">Cardio</button>
+        <button class="nav-btn" data-section="videos">Videos</button>
+        <button class="nav-btn" data-section="history">History</button>
       </nav>
 
       <div class="sidebar-footer">
-        <div class="mini-card">
-          <span class="label">Focus</span>
-          <strong id="focusText">Train. Track. Progress. Repeat.</strong>
-        </div>
+        <button id="loadDemoBtn" class="outline-btn">Load Demo Data</button>
+        <button id="resetDataBtn" class="ghost-btn">Reset Data</button>
       </div>
     </aside>
 
-    <main class="main-content">
-      <header class="topbar">
+    <main class="main">
+      <header class="topbar glass">
         <div>
-          <p class="eyebrow">Transformation dashboard</p>
+          <p class="eyebrow">Train. Track. Progress. Repeat.</p>
           <h2 id="pageTitle">Dashboard</h2>
         </div>
         <div class="topbar-actions">
-          <button class="ghost-btn" id="exportDataBtn">Export Data</button>
-          <button class="primary-btn" id="resetDemoBtn">Load Demo Data</button>
+          <div class="date-chip" id="todayDate"></div>
+          <button id="openQuickLog" class="primary-btn">Quick Log</button>
         </div>
       </header>
 
-      <section id="dashboard" class="page-section active">
-        <div class="hero-card">
+      <section id="dashboard" class="page active-page">
+        <div class="hero glass">
           <div>
-            <p class="eyebrow">Today at a glance</p>
-            <h3 id="heroWorkout">Upper Body Day</h3>
-            <p id="heroSubtitle">Stay consistent and keep the standard high.</p>
+            <p class="eyebrow">Daily Focus</p>
+            <h3>Stay locked in, Steady.</h3>
+            <p class="muted">Use this dashboard to keep training, nutrition, cardio and recovery all pulling in the same direction.</p>
           </div>
           <div class="hero-stats">
-            <div>
-              <span>Weight</span>
-              <strong id="heroWeight">-- kg</strong>
-            </div>
-            <div>
-              <span>Calories</span>
-              <strong id="heroCalories">--</strong>
-            </div>
-            <div>
-              <span>Steps</span>
-              <strong id="heroSteps">--</strong>
-            </div>
+            <div class="mini-stat"><span>Current Weight</span><strong id="heroWeight">-- kg</strong></div>
+            <div class="mini-stat"><span>Calories</span><strong id="heroCalories">--</strong></div>
+            <div class="mini-stat"><span>Water</span><strong id="heroWater">-- L</strong></div>
           </div>
         </div>
 
-        <div class="cards-grid four">
-          <article class="stat-card">
-            <span class="label">Today’s Workout</span>
-            <strong id="dashWorkoutType">--</strong>
-            <small id="dashWorkoutStatus">No session logged</small>
-          </article>
-          <article class="stat-card">
-            <span class="label">Weekly Average</span>
-            <strong id="dashWeeklyAverage">-- kg</strong>
-            <small>Based on weight entries</small>
-          </article>
-          <article class="stat-card">
-            <span class="label">Protein</span>
-            <strong id="dashProtein">-- g</strong>
-            <small>Target vs actual</small>
-          </article>
-          <article class="stat-card">
-            <span class="label">Cardio Total</span>
-            <strong id="dashCardio">-- min</strong>
-            <small>Current 7 days</small>
-          </article>
+        <div class="card-grid four">
+          <article class="card glass accent-blue"><span>Today’s Workout</span><strong id="todayWorkoutCard">Upper Body</strong><small id="todayWorkoutNote">Chest, shoulders, triceps</small></article>
+          <article class="card glass accent-green"><span>Daily Steps</span><strong id="stepsCard">0</strong><small>Goal: 20,000</small></article>
+          <article class="card glass accent-gold"><span>Protein</span><strong id="proteinCard">0 g</strong><small>Goal: 220 g</small></article>
+          <article class="card glass accent-red"><span>Weekly Sessions</span><strong id="sessionsCard">0 / 6</strong><small id="consistencyCard">Consistency pending</small></article>
         </div>
 
-        <div class="cards-grid two">
-          <article class="panel">
-            <div class="panel-head">
-              <h3>Quick Check-In</h3>
-              <span class="pill">Daily</span>
+        <div class="dashboard-layout">
+          <article class="panel glass">
+            <div class="panel-header">
+              <h3>Today’s Plan</h3>
+              <button class="text-btn" data-jump="workout">Open workout</button>
             </div>
-            <form id="quickCheckinForm" class="form-grid compact">
-              <label>
-                Weight (kg)
-                <input type="number" step="0.1" id="quickWeight" placeholder="95.0" />
-              </label>
-              <label>
-                Calories
-                <input type="number" id="quickCalories" placeholder="1950" />
-              </label>
-              <label>
-                Steps
-                <input type="number" id="quickSteps" placeholder="12000" />
-              </label>
-              <label>
-                Workout
-                <select id="quickWorkoutType">
-                  <option>Upper Body</option>
-                  <option>Lower Body</option>
-                  <option>Cardio</option>
-                  <option>Rest Day</option>
-                </select>
-              </label>
-              <button type="submit" class="primary-btn full">Save Daily Check-In</button>
-            </form>
+            <ul id="todayPlan" class="clean-list"></ul>
           </article>
 
-          <article class="panel">
-            <div class="panel-head">
-              <h3>Consistency Score</h3>
-              <span class="pill accent">7 days</span>
+          <article class="panel glass">
+            <div class="panel-header">
+              <h3>Weekly Snapshot</h3>
             </div>
-            <div class="score-wrap">
-              <div class="score-ring">
-                <strong id="consistencyScore">0%</strong>
-              </div>
-              <div>
-                <p id="consistencyText">No recent activity yet.</p>
-                <ul class="clean-list">
-                  <li>Weight log</li>
-                  <li>Workout log</li>
-                  <li>Nutrition log</li>
-                  <li>Cardio log</li>
-                </ul>
-              </div>
+            <div class="snapshot-grid">
+              <div><span>Avg Weight</span><strong id="avgWeight">-- kg</strong></div>
+              <div><span>Cardio Mins</span><strong id="weeklyCardio">0</strong></div>
+              <div><span>Water Avg</span><strong id="waterAvg">0.0 L</strong></div>
+              <div><span>Meals Hit</span><strong id="mealHitRate">0%</strong></div>
             </div>
           </article>
         </div>
       </section>
 
-      <section id="workout" class="page-section">
-        <div class="cards-grid two">
-          <article class="panel">
-            <div class="panel-head">
+      <section id="workout" class="page">
+        <div class="section-grid two">
+          <article class="panel glass">
+            <div class="panel-header">
               <h3>Workout Logger</h3>
-              <span class="pill">Strength</span>
+              <span class="pill">Previous best shown</span>
             </div>
-            <form id="workoutForm" class="form-grid">
-              <label>
-                Date
-                <input type="date" id="workoutDate" />
+            <form id="workoutForm" class="stack-form">
+              <label>Session Name
+                <input type="text" id="sessionName" placeholder="Upper Body A" required>
               </label>
-              <label>
-                Session Type
-                <select id="sessionType">
-                  <option>Upper Body</option>
-                  <option>Lower Body</option>
-                  <option>Push</option>
-                  <option>Pull</option>
-                  <option>Legs</option>
-                  <option>Cardio</option>
-                </select>
+              <label>Exercise
+                <input type="text" id="exerciseName" placeholder="Incline Dumbbell Press" required>
               </label>
-              <label>
-                Exercise
-                <input type="text" id="exerciseName" placeholder="Incline Chest Press" />
-              </label>
-              <label>
-                Previous Best
-                <input type="text" id="previousBest" placeholder="80kg x 8" />
-              </label>
-              <label>
-                Target
-                <input type="text" id="targetLift" placeholder="82.5kg x 8" />
-              </label>
-              <label>
-                Completed Sets
-                <input type="text" id="completedSets" placeholder="82.5x8, 80x8, 75x10" />
-              </label>
-              <label class="full">
-                Notes
-                <textarea id="workoutNotes" rows="4" placeholder="How it felt, form notes, energy, anything important..."></textarea>
-              </label>
-              <button type="submit" class="primary-btn full">Add Workout Entry</button>
-            </form>
-          </article>
-
-          <article class="panel">
-            <div class="panel-head">
-              <h3>Rest Timer</h3>
-              <span class="pill accent">Floating</span>
-            </div>
-            <div class="timer-panel">
-              <div id="timerDisplay">01:00</div>
-              <div class="timer-buttons">
-                <button class="ghost-btn timer-preset" data-seconds="45">45s</button>
-                <button class="ghost-btn timer-preset" data-seconds="60">60s</button>
-                <button class="ghost-btn timer-preset" data-seconds="90">90s</button>
-                <button class="ghost-btn timer-preset" data-seconds="120">120s</button>
+              <div class="split-inputs">
+                <label>Target Sets
+                  <input type="number" id="targetSets" min="1" value="3" required>
+                </label>
+                <label>Target Reps
+                  <input type="number" id="targetReps" min="1" value="10" required>
+                </label>
+                <label>Weight (kg)
+                  <input type="number" id="weightUsed" min="0" step="0.5" value="20" required>
+                </label>
               </div>
-              <div class="timer-actions">
-                <button class="primary-btn" id="startTimerBtn">Start</button>
-                <button class="ghost-btn" id="pauseTimerBtn">Pause</button>
-                <button class="ghost-btn" id="resetTimerBtn">Reset</button>
+              <label>Completed Sets
+                <input type="number" id="completedSets" min="0" value="0" required>
+              </label>
+              <label>Notes
+                <textarea id="workoutNotes" rows="3" placeholder="Felt strong / increase next session"></textarea>
+              </label>
+              <div class="form-actions">
+                <button type="submit" class="primary-btn">Save Exercise</button>
+                <button type="button" id="completeWorkoutBtn" class="outline-btn">Complete Session</button>
               </div>
-              <p class="muted">Use the floating timer button in the bottom-right while logging workouts.</p>
-            </div>
-          </article>
-        </div>
-
-        <article class="panel">
-          <div class="panel-head">
-            <h3>Latest Workout Entries</h3>
-            <span class="pill">Recent</span>
-          </div>
-          <div id="workoutList" class="stack-list empty-state">No workout entries yet.</div>
-        </article>
-      </section>
-
-      <section id="progress" class="page-section">
-        <div class="cards-grid two">
-          <article class="panel">
-            <div class="panel-head">
-              <h3>Progress Tracker</h3>
-              <span class="pill">Body Metrics</span>
-            </div>
-            <form id="progressForm" class="form-grid compact">
-              <label>
-                Date
-                <input type="date" id="progressDate" />
-              </label>
-              <label>
-                Weight (kg)
-                <input type="number" step="0.1" id="progressWeight" />
-              </label>
-              <label>
-                Waist (cm)
-                <input type="number" step="0.1" id="progressWaist" />
-              </label>
-              <label>
-                Chest (cm)
-                <input type="number" step="0.1" id="progressChest" />
-              </label>
-              <label>
-                Arms (cm)
-                <input type="number" step="0.1" id="progressArms" />
-              </label>
-              <label>
-                Notes
-                <input type="text" id="progressNotes" placeholder="Leaned out, fuller, flat, etc." />
-              </label>
-              <button type="submit" class="primary-btn full">Save Progress Entry</button>
             </form>
           </article>
 
-          <article class="panel">
-            <div class="panel-head">
-              <h3>Weight Trend</h3>
-              <span class="pill accent">Simple chart</span>
+          <article class="panel glass">
+            <div class="panel-header">
+              <h3>Current Session</h3>
+              <button class="text-btn" id="startTimerBtn">Start timer</button>
             </div>
-            <div class="chart-card">
-              <canvas id="weightChart" width="800" height="320"></canvas>
-            </div>
+            <div id="previousBestBox" class="notice-box">Previous best: none yet</div>
+            <div id="workoutEntries" class="entry-list empty-state">No exercises logged yet.</div>
           </article>
         </div>
-
-        <article class="panel">
-          <div class="panel-head">
-            <h3>Progress History</h3>
-            <span class="pill">Tracking</span>
-          </div>
-          <div id="progressTableWrap" class="table-wrap"></div>
-        </article>
       </section>
 
-      <section id="nutrition" class="page-section">
-        <div class="cards-grid two">
-          <article class="panel">
-            <div class="panel-head">
-              <h3>Nutrition Log</h3>
-              <span class="pill">Macros</span>
+      <section id="progress" class="page">
+        <div class="section-grid two">
+          <article class="panel glass">
+            <div class="panel-header">
+              <h3>Bodyweight Tracker</h3>
             </div>
-            <form id="nutritionForm" class="form-grid compact">
-              <label>
-                Date
-                <input type="date" id="nutritionDate" />
+            <form id="weightForm" class="stack-form compact">
+              <div class="split-inputs single-line">
+                <label>Date
+                  <input type="date" id="weightDate" required>
+                </label>
+                <label>Weight (kg)
+                  <input type="number" id="weightValue" step="0.1" required>
+                </label>
+                <button type="submit" class="primary-btn align-end">Add</button>
+              </div>
+            </form>
+            <canvas id="weightChart" height="180"></canvas>
+          </article>
+
+          <article class="panel glass">
+            <div class="panel-header">
+              <h3>Measurements & Notes</h3>
+            </div>
+            <form id="measurementForm" class="stack-form compact">
+              <div class="split-inputs">
+                <label>Waist (cm)
+                  <input type="number" id="waistValue" step="0.1">
+                </label>
+                <label>Chest (cm)
+                  <input type="number" id="chestValue" step="0.1">
+                </label>
+                <label>Arms (cm)
+                  <input type="number" id="armsValue" step="0.1">
+                </label>
+              </div>
+              <label>Progress Note
+                <textarea id="progressNote" rows="3" placeholder="Fitter this week, waist down, energy strong"></textarea>
               </label>
-              <label>
-                Calories
-                <input type="number" id="nutritionCalories" />
+              <button type="submit" class="primary-btn">Save Progress Check-in</button>
+            </form>
+            <div id="measurementEntries" class="entry-list empty-state">No measurements saved yet.</div>
+          </article>
+        </div>
+      </section>
+
+      <section id="nutrition" class="page">
+        <div class="section-grid two">
+          <article class="panel glass">
+            <div class="panel-header">
+              <h3>Daily Nutrition</h3>
+            </div>
+            <form id="nutritionForm" class="stack-form">
+              <div class="split-inputs">
+                <label>Calories
+                  <input type="number" id="caloriesInput" value="1950" required>
+                </label>
+                <label>Protein (g)
+                  <input type="number" id="proteinInput" value="220" required>
+                </label>
+                <label>Carbs (g)
+                  <input type="number" id="carbsInput" value="155" required>
+                </label>
+                <label>Fat (g)
+                  <input type="number" id="fatInput" value="47" required>
+                </label>
+                <label>Water (L)
+                  <input type="number" id="waterInput" value="4" step="0.1" required>
+                </label>
+              </div>
+              <div class="check-grid" id="mealChecklist">
+                <label><input type="checkbox" value="3:30 AM shake"> 3:30 AM shake</label>
+                <label><input type="checkbox" value="6:00 AM post-workout"> 6:00 AM post-workout</label>
+                <label><input type="checkbox" value="8:00 AM eggs"> 8:00 AM eggs</label>
+                <label><input type="checkbox" value="12:00 PM meal"> 12:00 PM meal</label>
+                <label><input type="checkbox" value="3:00 PM shake"> 3:00 PM shake</label>
+                <label><input type="checkbox" value="6:00 PM meal"> 6:00 PM meal</label>
+                <label><input type="checkbox" value="8:00 PM snack"> 8:00 PM snack</label>
+              </div>
+              <label>Supplements
+                <textarea id="supplementInput" rows="3" placeholder="Multivitamin, cod liver oil, magnesium, collagen..."></textarea>
               </label>
-              <label>
-                Protein (g)
-                <input type="number" id="nutritionProtein" />
-              </label>
-              <label>
-                Carbs (g)
-                <input type="number" id="nutritionCarbs" />
-              </label>
-              <label>
-                Fats (g)
-                <input type="number" id="nutritionFats" />
-              </label>
-              <label>
-                Water (litres)
-                <input type="number" step="0.1" id="nutritionWater" />
-              </label>
-              <label class="full checkbox-row">
-                <span>Meal checklist</span>
-                <div class="checks">
-                  <label><input type="checkbox" class="meal-check" value="Shake 1" /> Shake 1</label>
-                  <label><input type="checkbox" class="meal-check" value="Post-workout" /> Post-workout</label>
-                  <label><input type="checkbox" class="meal-check" value="Meal 1" /> Meal 1</label>
-                  <label><input type="checkbox" class="meal-check" value="Meal 2" /> Meal 2</label>
-                  <label><input type="checkbox" class="meal-check" value="Meal 3" /> Meal 3</label>
-                  <label><input type="checkbox" class="meal-check" value="Evening" /> Evening</label>
-                </div>
-              </label>
-              <label class="full checkbox-row">
-                <span>Supplements taken</span>
-                <div class="checks">
-                  <label><input type="checkbox" class="supp-check" value="Multi" /> Multi</label>
-                  <label><input type="checkbox" class="supp-check" value="Cod Liver Oil" /> Cod Liver Oil</label>
-                  <label><input type="checkbox" class="supp-check" value="Magnesium" /> Magnesium</label>
-                  <label><input type="checkbox" class="supp-check" value="Ashwagandha" /> Ashwagandha</label>
-                  <label><input type="checkbox" class="supp-check" value="Milk Thistle" /> Milk Thistle</label>
-                  <label><input type="checkbox" class="supp-check" value="Collagen" /> Collagen</label>
-                </div>
-              </label>
-              <button type="submit" class="primary-btn full">Save Nutrition Entry</button>
+              <button type="submit" class="primary-btn">Save Nutrition Day</button>
             </form>
           </article>
 
-          <article class="panel">
-            <div class="panel-head">
-              <h3>Nutrition Snapshot</h3>
-              <span class="pill accent">Latest</span>
+          <article class="panel glass">
+            <div class="panel-header">
+              <h3>Nutrition Summary</h3>
             </div>
-            <div id="nutritionSnapshot" class="stack-list empty-state">No nutrition entries yet.</div>
+            <div class="summary-stack">
+              <div class="summary-row"><span>Calories</span><strong id="nutritionCalories">--</strong></div>
+              <div class="summary-row"><span>Protein</span><strong id="nutritionProtein">--</strong></div>
+              <div class="summary-row"><span>Carbs</span><strong id="nutritionCarbs">--</strong></div>
+              <div class="summary-row"><span>Fat</span><strong id="nutritionFat">--</strong></div>
+              <div class="summary-row"><span>Water</span><strong id="nutritionWater">--</strong></div>
+              <div class="summary-row"><span>Meals Completed</span><strong id="mealsCompleted">0 / 7</strong></div>
+            </div>
+            <div id="supplementList" class="notice-box">No supplement log saved yet.</div>
           </article>
         </div>
       </section>
 
-      <section id="cardio" class="page-section">
-        <div class="cards-grid two">
-          <article class="panel">
-            <div class="panel-head">
-              <h3>Cardio Dashboard</h3>
-              <span class="pill">Conditioning</span>
+      <section id="cardio" class="page">
+        <div class="section-grid two">
+          <article class="panel glass">
+            <div class="panel-header">
+              <h3>Cardio Logger</h3>
             </div>
-            <form id="cardioForm" class="form-grid compact">
-              <label>
-                Date
-                <input type="date" id="cardioDate" />
+            <form id="cardioForm" class="stack-form compact">
+              <div class="split-inputs">
+                <label>Type
+                  <select id="cardioType">
+                    <option>Treadmill Walk</option>
+                    <option>Stair Climber</option>
+                    <option>Run</option>
+                    <option>Steps Only</option>
+                  </select>
+                </label>
+                <label>Minutes
+                  <input type="number" id="cardioMinutes" value="30" required>
+                </label>
+                <label>Steps
+                  <input type="number" id="cardioSteps" value="5000" required>
+                </label>
+              </div>
+              <label>Notes
+                <textarea id="cardioNotes" rows="3" placeholder="Incline 12, speed 3.5 mph"></textarea>
               </label>
-              <label>
-                Type
-                <select id="cardioType">
-                  <option>Treadmill</option>
-                  <option>Stair Climber</option>
-                  <option>Outdoor Walk</option>
-                  <option>Run</option>
-                  <option>Bike</option>
-                </select>
-              </label>
-              <label>
-                Minutes
-                <input type="number" id="cardioMinutes" />
-              </label>
-              <label>
-                Distance / Extra
-                <input type="text" id="cardioDistance" placeholder="3.5 miles / Level 7 / 12 incline" />
-              </label>
-              <label>
-                Steps
-                <input type="number" id="cardioSteps" />
-              </label>
-              <label>
-                Notes
-                <input type="text" id="cardioNotes" placeholder="Felt easy, hard, steady..." />
-              </label>
-              <button type="submit" class="primary-btn full">Save Cardio Entry</button>
+              <button type="submit" class="primary-btn">Save Cardio</button>
             </form>
           </article>
 
-          <article class="panel">
-            <div class="panel-head">
-              <h3>Weekly Totals</h3>
-              <span class="pill accent">7 days</span>
+          <article class="panel glass">
+            <div class="panel-header">
+              <h3>Cardio Totals</h3>
             </div>
-            <div class="cards-grid two inner-grid">
-              <article class="stat-card small">
-                <span class="label">Minutes</span>
-                <strong id="cardioWeeklyMinutes">0</strong>
-              </article>
-              <article class="stat-card small">
-                <span class="label">Sessions</span>
-                <strong id="cardioWeeklySessions">0</strong>
-              </article>
-              <article class="stat-card small">
-                <span class="label">Steps</span>
-                <strong id="cardioWeeklySteps">0</strong>
-              </article>
-              <article class="stat-card small">
-                <span class="label">Consistency</span>
-                <strong id="cardioConsistency">0%</strong>
-              </article>
+            <div class="summary-stack">
+              <div class="summary-row"><span>Total Sessions</span><strong id="cardioSessions">0</strong></div>
+              <div class="summary-row"><span>Total Minutes</span><strong id="cardioMinutesTotal">0</strong></div>
+              <div class="summary-row"><span>Total Steps</span><strong id="cardioStepsTotal">0</strong></div>
             </div>
+            <div id="cardioEntries" class="entry-list empty-state">No cardio entries yet.</div>
           </article>
         </div>
-
-        <article class="panel">
-          <div class="panel-head">
-            <h3>Recent Cardio Sessions</h3>
-            <span class="pill">Log</span>
-          </div>
-          <div id="cardioList" class="stack-list empty-state">No cardio entries yet.</div>
-        </article>
       </section>
 
-      <section id="videos" class="page-section">
-        <article class="panel">
-          <div class="panel-head">
+      <section id="videos" class="page">
+        <article class="panel glass">
+          <div class="panel-header">
             <h3>Exercise Videos</h3>
-            <span class="pill">Favourites + grouped</span>
           </div>
-          <div class="video-toolbar">
-            <input type="text" id="videoSearch" placeholder="Search exercise videos..." />
-          </div>
-          <div id="videoGrid" class="cards-grid three"></div>
+          <div class="video-grid" id="videoGrid"></div>
         </article>
       </section>
 
-      <section id="history" class="page-section">
-        <div class="cards-grid two">
-          <article class="panel">
-            <div class="panel-head">
-              <h3>Recent Activity</h3>
-              <span class="pill">All sections</span>
-            </div>
-            <div id="historyFeed" class="stack-list empty-state">No activity yet.</div>
-          </article>
-          <article class="panel">
-            <div class="panel-head">
-              <h3>Notes / Planning</h3>
-              <span class="pill accent">Daily use</span>
-            </div>
-            <textarea id="planningNotes" class="big-notes" placeholder="Plan tomorrow's session, write reminders, track how prep is going..."></textarea>
-            <button class="primary-btn" id="saveNotesBtn">Save Notes</button>
-          </article>
-        </div>
+      <section id="history" class="page">
+        <article class="panel glass">
+          <div class="panel-header">
+            <h3>Activity History</h3>
+          </div>
+          <div id="historyFeed" class="entry-list empty-state">No history yet. Start logging to populate this feed.</div>
+        </article>
       </section>
     </main>
   </div>
 
-  <button id="floatingTimerBtn" class="floating-timer" title="Open timer">⏱ <span id="floatingTimerText">01:00</span></button>
+  <div class="floating-timer glass" id="timerWidget">
+    <div>
+      <span class="timer-label">Rest Timer</span>
+      <strong id="timerDisplay">01:00</strong>
+    </div>
+    <div class="timer-controls">
+      <button class="chip-btn timer-preset" data-seconds="45">45s</button>
+      <button class="chip-btn timer-preset" data-seconds="60">60s</button>
+      <button class="chip-btn timer-preset" data-seconds="90">90s</button>
+      <button id="timerStartPause" class="primary-btn small">Start</button>
+      <button id="timerReset" class="ghost-btn small">Reset</button>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="quickLogModal">
+    <div class="modal-card glass">
+      <div class="panel-header">
+        <h3>Quick Log</h3>
+        <button id="closeQuickLog" class="ghost-btn small">Close</button>
+      </div>
+      <div class="quick-actions">
+        <button class="quick-action" data-quick="water">+0.5L Water</button>
+        <button class="quick-action" data-quick="steps">+1000 Steps</button>
+        <button class="quick-action" data-quick="protein">+25g Protein</button>
+        <button class="quick-action" data-quick="session">+1 Session</button>
+      </div>
+    </div>
+  </div>
 
   <script src="script.js"></script>
 </body>

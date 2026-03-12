@@ -1,24 +1,29 @@
-STEADY LOG V2
+STEADY LOG V3
 
-Files included:
+Files:
 - index.html
 - styles.css
 - script.js
 
 How to use:
 1. Put all 3 files in the same folder.
-2. Double-click index.html to open in your browser.
-3. The app saves your data in browser local storage automatically.
-4. Use Export Data to download your saved data as JSON.
+2. Open index.html in your browser.
+3. Everything saves in local browser storage automatically.
+4. Use “Load Demo Data” to preview the app quickly.
 
-Main upgrades included:
-- Premium dashboard layout
-- Daily quick check-in
-- Workout logger with previous best / target / completed sets / notes
-- Floating rest timer with presets
-- Progress tracker + weight chart
-- Nutrition tracker with meal and supplement checklist
-- Cardio dashboard with weekly totals
-- Exercise videos section
-- History feed and planning notes
-- Demo data button to preview the app instantly
+What’s included:
+- Premium dashboard
+- Workout logger
+- Floating rest timer
+- Weight trend chart
+- Measurements tracker
+- Nutrition and supplement tracker
+- Cardio log and totals
+- Exercise video links
+- History feed
+- Quick log modal
+- Mobile-responsive layout
+
+Notes:
+- To host online, upload the 3 files to GitHub Pages, Netlify or similar.
+- Video buttons open YouTube search results for each exercise.
