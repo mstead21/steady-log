@@ -1,29 +1,24 @@
-STEADY LOG V3
+STEADY LOG - SIMPLE REBUILD
 
-Files:
-- index.html
-- styles.css
-- script.js
+This version is stripped back and rebuilt for clear workout logging.
+
+What works:
+- Log date, session, exercise
+- Enter weight + reps for each set
+- See previous exercise log
+- Copy previous sets into today's entry
+- Save workout history in browser local storage
+- Search workout history
+- Rest timer with presets
+- Export all workout data as JSON
 
 How to use:
-1. Put all 3 files in the same folder.
-2. Open index.html in your browser.
-3. Everything saves in local browser storage automatically.
-4. Use “Load Demo Data” to preview the app quickly.
+1. Open index.html in your browser.
+2. Enter exercise name.
+3. Add weight and reps for each set.
+4. Click Save Workout.
+5. History appears below.
 
-What’s included:
-- Premium dashboard
-- Workout logger
-- Floating rest timer
-- Weight trend chart
-- Measurements tracker
-- Nutrition and supplement tracker
-- Cardio log and totals
-- Exercise video links
-- History feed
-- Quick log modal
-- Mobile-responsive layout
-
-Notes:
-- To host online, upload the 3 files to GitHub Pages, Netlify or similar.
-- Video buttons open YouTube search results for each exercise.
+Important:
+- Data saves in the browser on that device.
+- If you want cloud sync later, that can be added in the next version.

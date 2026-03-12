@@ -1,516 +1,316 @@
-const STORAGE_KEY = 'steadyLogV3';
+const STORAGE_KEY = 'steady_log_workouts_v1';
 
-const defaultState = {
-  stats: {
-    currentWeight: null,
-    calories: 0,
-    protein: 0,
-    carbs: 0,
-    fat: 0,
-    water: 0,
-    steps: 0,
-    weeklySessions: 0,
-  },
-  todayWorkout: 'Upper Body',
-  workoutFocus: 'Chest, shoulders, triceps',
-  workouts: [],
-  weightLogs: [],
-  measurements: [],
-  nutritionDays: [],
-  cardioLogs: [],
-  history: [],
-};
+const dateInput = document.getElementById('dateInput');
+const sessionInput = document.getElementById('sessionInput');
+const exerciseInput = document.getElementById('exerciseInput');
+const previousBox = document.getElementById('previousBox');
+const setsBody = document.getElementById('setsBody');
+const setRowTemplate = document.getElementById('setRowTemplate');
+const sessionNotes = document.getElementById('sessionNotes');
+const saveWorkoutBtn = document.getElementById('saveWorkoutBtn');
+const addSetBtn = document.getElementById('addSetBtn');
+const copyPrevBtn = document.getElementById('copyPrevBtn');
+const historyList = document.getElementById('historyList');
+const searchInput = document.getElementById('searchInput');
+const totalWorkouts = document.getElementById('totalWorkouts');
+const totalSets = document.getElementById('totalSets');
+const weekCount = document.getElementById('weekCount');
+const lastSession = document.getElementById('lastSession');
+const loadDemoBtn = document.getElementById('loadDemoBtn');
+const clearBtn = document.getElementById('clearBtn');
+const exportBtn = document.getElementById('exportBtn');
 
-let state = loadState();
-let timerSeconds = 60;
+const timerDisplay = document.getElementById('timerDisplay');
+const startTimerBtn = document.getElementById('startTimerBtn');
+const pauseTimerBtn = document.getElementById('pauseTimerBtn');
+const resetTimerBtn = document.getElementById('resetTimerBtn');
+const presetButtons = document.querySelectorAll('.preset');
+
+let timerSeconds = 90;
+let timerRemaining = timerSeconds;
 let timerInterval = null;
-let timerRunning = false;
 
-const videos = [
-  { title: 'Incline Dumbbell Press', area: 'Chest', url: 'https://www.youtube.com/results?search_query=incline+dumbbell+press' },
-  { title: 'Lat Pulldown', area: 'Back', url: 'https://www.youtube.com/results?search_query=lat+pulldown+form' },
-  { title: 'Shoulder Press', area: 'Shoulders', url: 'https://www.youtube.com/results?search_query=shoulder+press+form' },
-  { title: 'Leg Press', area: 'Legs', url: 'https://www.youtube.com/results?search_query=leg+press+form' },
-  { title: 'Romanian Deadlift', area: 'Hamstrings', url: 'https://www.youtube.com/results?search_query=romanian+deadlift+form' },
-  { title: 'Cable Curl', area: 'Arms', url: 'https://www.youtube.com/results?search_query=cable+bicep+curl+form' },
-];
-
-function loadState() {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (!saved) return structuredClone(defaultState);
-  try {
-    return { ...structuredClone(defaultState), ...JSON.parse(saved) };
-  } catch {
-    return structuredClone(defaultState);
-  }
+function getWorkouts() {
+  return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 }
 
-function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+function saveWorkouts(workouts) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(workouts));
 }
 
-function addHistory(type, text) {
-  state.history.unshift({ type, text, date: new Date().toLocaleString() });
-  state.history = state.history.slice(0, 30);
+function todayValue() {
+  const now = new Date();
+  const month = `${now.getMonth() + 1}`.padStart(2, '0');
+  const day = `${now.getDate()}`.padStart(2, '0');
+  return `${now.getFullYear()}-${month}-${day}`;
 }
 
-function formatDate(dateStr) {
-  if (!dateStr) return '--';
-  return new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-function setTodayDefaults() {
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('todayDate').textContent = new Date().toLocaleDateString('en-GB', {
-    weekday: 'short', day: 'numeric', month: 'short'
+function addSetRow(values = {}) {
+  const clone = setRowTemplate.content.cloneNode(true);
+  const row = clone.querySelector('tr');
+  row.querySelector('.weight-input').value = values.weight ?? '';
+  row.querySelector('.reps-input').value = values.reps ?? '';
+  row.querySelector('.set-notes-input').value = values.notes ?? '';
+  row.querySelector('.remove-set').addEventListener('click', () => {
+    row.remove();
+    renumberSets();
   });
-  document.getElementById('weightDate').value = today;
+  setsBody.appendChild(clone);
+  renumberSets();
 }
 
-function bindNavigation() {
-  document.querySelectorAll('.nav-btn').forEach(btn => {
-    btn.addEventListener('click', () => switchSection(btn.dataset.section));
-  });
-  document.querySelectorAll('[data-jump]').forEach(btn => {
-    btn.addEventListener('click', () => switchSection(btn.dataset.jump));
+function renumberSets() {
+  [...setsBody.querySelectorAll('tr')].forEach((row, index) => {
+    row.querySelector('.set-number').textContent = `Set ${index + 1}`;
   });
 }
 
-function switchSection(sectionId) {
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.section === sectionId));
-  document.querySelectorAll('.page').forEach(p => p.classList.toggle('active-page', p.id === sectionId));
-  document.getElementById('pageTitle').textContent = sectionId.charAt(0).toUpperCase() + sectionId.slice(1);
+function collectSets() {
+  return [...setsBody.querySelectorAll('tr')]
+    .map((row) => ({
+      weight: Number(row.querySelector('.weight-input').value || 0),
+      reps: Number(row.querySelector('.reps-input').value || 0),
+      notes: row.querySelector('.set-notes-input').value.trim()
+    }))
+    .filter((set) => set.weight > 0 || set.reps > 0 || set.notes);
 }
 
-function renderDashboard() {
-  const latestWeight = state.weightLogs[0]?.weight ?? state.stats.currentWeight;
-  const latestNutrition = state.nutritionDays[0] || {};
-  const cardioTotalMins = state.cardioLogs.reduce((sum, c) => sum + Number(c.minutes || 0), 0);
-  const waterAvg = state.nutritionDays.length
-    ? state.nutritionDays.reduce((sum, d) => sum + Number(d.water || 0), 0) / state.nutritionDays.length
-    : 0;
-  const mealsPossible = state.nutritionDays.length * 7;
-  const mealsCompleted = state.nutritionDays.reduce((sum, d) => sum + d.meals.length, 0);
-  const mealRate = mealsPossible ? Math.round((mealsCompleted / mealsPossible) * 100) : 0;
-  const avgWeight = state.weightLogs.length
-    ? (state.weightLogs.reduce((sum, log) => sum + Number(log.weight), 0) / state.weightLogs.length).toFixed(1)
-    : '--';
-
-  setText('heroWeight', latestWeight ? `${latestWeight} kg` : '-- kg');
-  setText('heroCalories', latestNutrition.calories ?? '--');
-  setText('heroWater', latestNutrition.water ? `${latestNutrition.water} L` : '-- L');
-  setText('todayWorkoutCard', state.todayWorkout);
-  setText('todayWorkoutNote', state.workoutFocus);
-  setText('stepsCard', state.stats.steps || 0);
-  setText('proteinCard', `${latestNutrition.protein || 0} g`);
-  setText('sessionsCard', `${state.stats.weeklySessions || 0} / 6`);
-  setText('consistencyCard', state.stats.weeklySessions >= 5 ? 'Strong week' : 'Keep pushing');
-  setText('avgWeight', avgWeight === '--' ? '-- kg' : `${avgWeight} kg`);
-  setText('weeklyCardio', cardioTotalMins);
-  setText('waterAvg', `${waterAvg.toFixed(1)} L`);
-  setText('mealHitRate', `${mealRate}%`);
-
-  const plan = [
-    `${state.todayWorkout} session`,
-    '20 mins stair climber',
-    '30–40 mins treadmill walk',
-    'Hit protein target and 4L water',
-  ];
-  document.getElementById('todayPlan').innerHTML = plan.map(item => `<li>${item}</li>`).join('');
+function findPreviousEntry(exerciseName) {
+  const workouts = getWorkouts();
+  const match = [...workouts].reverse().find((item) =>
+    item.exercise.toLowerCase() === exerciseName.trim().toLowerCase()
+  );
+  return match || null;
 }
 
-function renderWorkoutEntries() {
-  const container = document.getElementById('workoutEntries');
-  if (!state.workouts.length) {
-    container.className = 'entry-list empty-state';
-    container.textContent = 'No exercises logged yet.';
-    document.getElementById('previousBestBox').textContent = 'Previous best: none yet';
+function updatePreviousBox() {
+  const exerciseName = exerciseInput.value.trim();
+  if (!exerciseName) {
+    previousBox.textContent = 'Type an exercise name to see your last logged weights.';
     return;
   }
-  container.className = 'entry-list';
-  container.innerHTML = state.workouts.slice(0, 8).map(w => `
-    <div class="entry-card">
-      <h4>${w.exercise}</h4>
-      <div class="entry-meta">${w.session} • ${w.weight} kg • ${w.completedSets}/${w.targetSets} sets • ${w.targetReps} reps</div>
-      <p>${w.notes || 'No notes'}</p>
-    </div>
-  `).join('');
-  const last = state.workouts[0];
-  document.getElementById('previousBestBox').textContent = `Previous best: ${last.exercise} — ${last.weight} kg for ${last.targetReps} reps`;
-}
-
-function renderMeasurements() {
-  const container = document.getElementById('measurementEntries');
-  if (!state.measurements.length) {
-    container.className = 'entry-list empty-state';
-    container.textContent = 'No measurements saved yet.';
+  const previous = findPreviousEntry(exerciseName);
+  if (!previous) {
+    previousBox.textContent = 'No previous log found for this exercise yet.';
     return;
   }
-  container.className = 'entry-list';
-  container.innerHTML = state.measurements.slice(0, 6).map(m => `
-    <div class="entry-card">
-      <h4>${formatDate(m.date)}</h4>
-      <div class="entry-meta">Waist ${m.waist || '-'} cm • Chest ${m.chest || '-'} cm • Arms ${m.arms || '-'} cm</div>
-      <p>${m.note || 'No progress note'}</p>
-    </div>
-  `).join('');
+  const setsText = previous.sets
+    .map((set, index) => `Set ${index + 1}: ${set.weight || 0}kg x ${set.reps || 0}${set.notes ? ` (${set.notes})` : ''}`)
+    .join(' | ');
+  previousBox.textContent = `Last time: ${previous.date} • ${previous.session} • ${setsText}`;
 }
 
-function renderNutrition() {
-  const latest = state.nutritionDays[0];
-  setText('nutritionCalories', latest ? latest.calories : '--');
-  setText('nutritionProtein', latest ? `${latest.protein} g` : '--');
-  setText('nutritionCarbs', latest ? `${latest.carbs} g` : '--');
-  setText('nutritionFat', latest ? `${latest.fat} g` : '--');
-  setText('nutritionWater', latest ? `${latest.water} L` : '--');
-  setText('mealsCompleted', latest ? `${latest.meals.length} / 7` : '0 / 7');
-  setText('supplementList', latest?.supplements ? `Supplements: ${latest.supplements}` : 'No supplement log saved yet.');
+function copyPreviousSets() {
+  const exerciseName = exerciseInput.value.trim();
+  const previous = findPreviousEntry(exerciseName);
+  if (!previous) return;
+  setsBody.innerHTML = '';
+  previous.sets.forEach((set) => addSetRow(set));
+  flashCard();
 }
 
-function renderCardio() {
-  setText('cardioSessions', state.cardioLogs.length);
-  setText('cardioMinutesTotal', state.cardioLogs.reduce((sum, c) => sum + Number(c.minutes || 0), 0));
-  setText('cardioStepsTotal', state.cardioLogs.reduce((sum, c) => sum + Number(c.steps || 0), 0).toLocaleString());
-  const container = document.getElementById('cardioEntries');
-  if (!state.cardioLogs.length) {
-    container.className = 'entry-list empty-state';
-    container.textContent = 'No cardio entries yet.';
+function flashCard() {
+  const card = saveWorkoutBtn.closest('.card');
+  card.classList.add('success-flash');
+  setTimeout(() => card.classList.remove('success-flash'), 600);
+}
+
+function saveWorkout() {
+  const exercise = exerciseInput.value.trim();
+  const sets = collectSets();
+  if (!exercise) {
+    alert('Add an exercise name first.');
     return;
   }
-  container.className = 'entry-list';
-  container.innerHTML = state.cardioLogs.slice(0, 6).map(c => `
-    <div class="entry-card">
-      <h4>${c.type}</h4>
-      <div class="entry-meta">${c.minutes} mins • ${Number(c.steps).toLocaleString()} steps</div>
-      <p>${c.notes || 'No notes'}</p>
-    </div>
-  `).join('');
+  if (!sets.length) {
+    alert('Add at least one set with weight or reps.');
+    return;
+  }
+
+  const entry = {
+    id: crypto.randomUUID(),
+    date: dateInput.value,
+    session: sessionInput.value,
+    exercise,
+    sets,
+    notes: sessionNotes.value.trim(),
+    createdAt: new Date().toISOString()
+  };
+
+  const workouts = getWorkouts();
+  workouts.push(entry);
+  workouts.sort((a, b) => new Date(b.date) - new Date(a.date) || new Date(b.createdAt) - new Date(a.createdAt));
+  saveWorkouts(workouts);
+
+  sessionNotes.value = '';
+  setsBody.innerHTML = '';
+  addSetRow();
+  addSetRow();
+  updatePreviousBox();
+  renderHistory();
+  renderSummary();
+  flashCard();
 }
 
 function renderHistory() {
-  const container = document.getElementById('historyFeed');
-  if (!state.history.length) {
-    container.className = 'entry-list empty-state';
-    container.textContent = 'No history yet. Start logging to populate this feed.';
-    return;
-  }
-  container.className = 'entry-list';
-  container.innerHTML = state.history.map(h => `
-    <div class="entry-card">
-      <h4>${h.type}</h4>
-      <div class="entry-meta">${h.date}</div>
-      <p>${h.text}</p>
-    </div>
-  `).join('');
-}
+  const workouts = getWorkouts();
+  const term = searchInput.value.trim().toLowerCase();
+  const filtered = workouts.filter((item) => {
+    if (!term) return true;
+    return item.exercise.toLowerCase().includes(term) || item.session.toLowerCase().includes(term);
+  });
 
-function renderVideos() {
-  document.getElementById('videoGrid').innerHTML = videos.map(video => `
-    <div class="video-card">
-      <span>${video.area}</span>
-      <strong>${video.title}</strong>
-      <a class="primary-btn" href="${video.url}" target="_blank" rel="noopener noreferrer">Open video</a>
-    </div>
-  `).join('');
-}
-
-function drawWeightChart() {
-  const canvas = document.getElementById('weightChart');
-  const ctx = canvas.getContext('2d');
-  const logs = [...state.weightLogs].reverse();
-  const dpr = window.devicePixelRatio || 1;
-  const rect = canvas.getBoundingClientRect();
-  canvas.width = rect.width * dpr;
-  canvas.height = 180 * dpr;
-  ctx.scale(dpr, dpr);
-  ctx.clearRect(0, 0, rect.width, 180);
-
-  if (logs.length < 2) {
-    ctx.fillStyle = '#9eb0cc';
-    ctx.font = '14px Inter';
-    ctx.fillText('Add at least 2 weight entries to show trend.', 14, 28);
+  if (!filtered.length) {
+    historyList.innerHTML = '<div class="empty">No workouts logged yet.</div>';
     return;
   }
 
-  const values = logs.map(l => Number(l.weight));
-  const min = Math.min(...values) - 1;
-  const max = Math.max(...values) + 1;
-  const pad = 28;
-  const width = rect.width - pad * 2;
-  const height = 180 - pad * 2;
+  historyList.innerHTML = filtered.map((item) => {
+    const setsHtml = item.sets.map((set, index) => `
+      <div class="history-set">
+        <div><strong>Set ${index + 1}</strong></div>
+        <div>${set.weight || 0}kg</div>
+        <div>${set.reps || 0} reps</div>
+        <div>${set.notes || ''}</div>
+      </div>
+    `).join('');
 
-  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-  ctx.lineWidth = 1;
-  for (let i = 0; i < 4; i++) {
-    const y = pad + (height / 3) * i;
-    ctx.beginPath();
-    ctx.moveTo(pad, y);
-    ctx.lineTo(pad + width, y);
-    ctx.stroke();
-  }
-
-  ctx.beginPath();
-  logs.forEach((log, index) => {
-    const x = pad + (index / (logs.length - 1)) * width;
-    const y = pad + ((max - Number(log.weight)) / (max - min)) * height;
-    if (index === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  });
-  ctx.strokeStyle = '#6fa8ff';
-  ctx.lineWidth = 3;
-  ctx.stroke();
-
-  logs.forEach((log, index) => {
-    const x = pad + (index / (logs.length - 1)) * width;
-    const y = pad + ((max - Number(log.weight)) / (max - min)) * height;
-    ctx.fillStyle = '#4fe3a1';
-    ctx.beginPath();
-    ctx.arc(x, y, 4, 0, Math.PI * 2);
-    ctx.fill();
-  });
+    return `
+      <article class="history-item">
+        <div class="history-top">
+          <div>
+            <h3 class="history-title">${item.exercise}</h3>
+            <div class="history-meta">${item.date} • ${item.session}</div>
+          </div>
+        </div>
+        ${item.notes ? `<div class="history-meta">${item.notes}</div>` : ''}
+        <div class="history-sets">${setsHtml}</div>
+      </article>
+    `;
+  }).join('');
 }
 
-function setText(id, value) {
-  document.getElementById(id).textContent = value;
+function renderSummary() {
+  const workouts = getWorkouts();
+  totalWorkouts.textContent = workouts.length;
+  totalSets.textContent = workouts.reduce((sum, item) => sum + item.sets.length, 0);
+
+  const now = new Date();
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  startOfWeek.setHours(0, 0, 0, 0);
+  const thisWeekCount = workouts.filter((item) => new Date(item.date) >= startOfWeek).length;
+  weekCount.textContent = thisWeekCount;
+  lastSession.textContent = workouts[0] ? `${workouts[0].date}` : '—';
 }
 
-function bindForms() {
-  document.getElementById('workoutForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const entry = {
-      session: value('sessionName'),
-      exercise: value('exerciseName'),
-      targetSets: Number(value('targetSets')),
-      targetReps: Number(value('targetReps')),
-      weight: Number(value('weightUsed')),
-      completedSets: Number(value('completedSets')),
-      notes: value('workoutNotes'),
-      date: new Date().toISOString(),
-    };
-    state.workouts.unshift(entry);
-    addHistory('Workout', `${entry.exercise} logged at ${entry.weight} kg.`);
-    saveState();
-    renderAll();
-    e.target.reset();
-    document.getElementById('targetSets').value = 3;
-    document.getElementById('targetReps').value = 10;
-    document.getElementById('weightUsed').value = 20;
-    document.getElementById('completedSets').value = 0;
-  });
-
-  document.getElementById('completeWorkoutBtn').addEventListener('click', () => {
-    state.stats.weeklySessions += 1;
-    addHistory('Session Complete', 'Workout session marked complete.');
-    saveState();
-    renderAll();
-  });
-
-  document.getElementById('weightForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const log = { date: value('weightDate'), weight: Number(value('weightValue')).toFixed(1) };
-    state.weightLogs.unshift(log);
-    state.stats.currentWeight = log.weight;
-    addHistory('Weight', `Bodyweight updated to ${log.weight} kg.`);
-    saveState();
-    renderAll();
-    e.target.reset();
-    setTodayDefaults();
-  });
-
-  document.getElementById('measurementForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const entry = {
-      date: new Date().toISOString(),
-      waist: value('waistValue'),
-      chest: value('chestValue'),
-      arms: value('armsValue'),
-      note: value('progressNote'),
-    };
-    state.measurements.unshift(entry);
-    addHistory('Measurements', 'Progress check-in saved.');
-    saveState();
-    renderAll();
-    e.target.reset();
-  });
-
-  document.getElementById('nutritionForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const meals = [...document.querySelectorAll('#mealChecklist input:checked')].map(i => i.value);
-    const day = {
-      date: new Date().toISOString(),
-      calories: Number(value('caloriesInput')),
-      protein: Number(value('proteinInput')),
-      carbs: Number(value('carbsInput')),
-      fat: Number(value('fatInput')),
-      water: Number(value('waterInput')),
-      meals,
-      supplements: value('supplementInput'),
-    };
-    state.nutritionDays.unshift(day);
-    state.stats.calories = day.calories;
-    state.stats.protein = day.protein;
-    state.stats.carbs = day.carbs;
-    state.stats.fat = day.fat;
-    state.stats.water = day.water;
-    addHistory('Nutrition', `Nutrition saved: ${day.calories} kcal and ${day.protein}g protein.`);
-    saveState();
-    renderAll();
-  });
-
-  document.getElementById('cardioForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const entry = {
-      type: value('cardioType'),
-      minutes: Number(value('cardioMinutes')),
-      steps: Number(value('cardioSteps')),
-      notes: value('cardioNotes'),
-      date: new Date().toISOString(),
-    };
-    state.cardioLogs.unshift(entry);
-    state.stats.steps += entry.steps;
-    addHistory('Cardio', `${entry.type} logged for ${entry.minutes} mins.`);
-    saveState();
-    renderAll();
-    e.target.reset();
-    document.getElementById('cardioMinutes').value = 30;
-    document.getElementById('cardioSteps').value = 5000;
-  });
-}
-
-function value(id) {
-  return document.getElementById(id).value;
-}
-
-function bindTimer() {
-  updateTimerDisplay();
-  document.querySelectorAll('.timer-preset').forEach(btn => {
-    btn.addEventListener('click', () => {
-      timerSeconds = Number(btn.dataset.seconds);
-      stopTimer(false);
-      updateTimerDisplay();
-    });
-  });
-  document.getElementById('timerStartPause').addEventListener('click', () => {
-    if (timerRunning) stopTimer(false);
-    else startTimer();
-  });
-  document.getElementById('timerReset').addEventListener('click', () => {
-    stopTimer(false);
-    timerSeconds = 60;
-    updateTimerDisplay();
-  });
-  document.getElementById('startTimerBtn').addEventListener('click', startTimer);
-}
-
-function startTimer() {
-  if (timerRunning) return;
-  timerRunning = true;
-  document.getElementById('timerStartPause').textContent = 'Pause';
-  timerInterval = setInterval(() => {
-    timerSeconds -= 1;
-    updateTimerDisplay();
-    if (timerSeconds <= 0) {
-      stopTimer(true);
-      timerSeconds = 60;
-      updateTimerDisplay();
+function loadDemo() {
+  const demo = [
+    {
+      id: crypto.randomUUID(),
+      date: todayValue(),
+      session: 'Upper Body',
+      exercise: 'Incline Smith Press',
+      sets: [
+        { weight: 60, reps: 12, notes: 'smooth' },
+        { weight: 70, reps: 10, notes: '' },
+        { weight: 75, reps: 8, notes: 'hard' }
+      ],
+      notes: 'Good energy.',
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: crypto.randomUUID(),
+      date: todayValue(),
+      session: 'Cardio',
+      exercise: 'Stair Climber',
+      sets: [
+        { weight: 0, reps: 20, notes: '20 mins level 7' }
+      ],
+      notes: '',
+      createdAt: new Date().toISOString()
     }
-  }, 1000);
+  ];
+  saveWorkouts(demo);
+  renderHistory();
+  renderSummary();
+  updatePreviousBox();
 }
 
-function stopTimer(finished) {
-  clearInterval(timerInterval);
-  timerRunning = false;
-  document.getElementById('timerStartPause').textContent = 'Start';
-  if (finished) alert('Rest complete. Back to work.');
+function clearData() {
+  const ok = confirm('Clear all saved workout data from this browser?');
+  if (!ok) return;
+  localStorage.removeItem(STORAGE_KEY);
+  renderHistory();
+  renderSummary();
+  updatePreviousBox();
+}
+
+function exportData() {
+  const data = JSON.stringify(getWorkouts(), null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'steady-log-export.json';
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function updateTimerDisplay() {
-  const mins = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
-  const secs = String(timerSeconds % 60).padStart(2, '0');
-  setText('timerDisplay', `${mins}:${secs}`);
+  const mins = Math.floor(timerRemaining / 60).toString().padStart(2, '0');
+  const secs = (timerRemaining % 60).toString().padStart(2, '0');
+  timerDisplay.textContent = `${mins}:${secs}`;
 }
 
-function bindQuickLog() {
-  const modal = document.getElementById('quickLogModal');
-  document.getElementById('openQuickLog').addEventListener('click', () => modal.classList.remove('hidden'));
-  document.getElementById('closeQuickLog').addEventListener('click', () => modal.classList.add('hidden'));
-  document.querySelectorAll('.quick-action').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const quick = btn.dataset.quick;
-      if (quick === 'water') state.stats.water = Number((Number(state.stats.water || 0) + 0.5).toFixed(1));
-      if (quick === 'steps') state.stats.steps += 1000;
-      if (quick === 'protein') state.stats.protein += 25;
-      if (quick === 'session') state.stats.weeklySessions += 1;
-      addHistory('Quick Log', `${btn.textContent} applied.`);
-      saveState();
-      renderAll();
-    });
+function startTimer() {
+  if (timerInterval) return;
+  timerInterval = setInterval(() => {
+    if (timerRemaining <= 0) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      alert('Rest time done.');
+      return;
+    }
+    timerRemaining -= 1;
+    updateTimerDisplay();
+  }, 1000);
+}
+
+function pauseTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+}
+
+function resetTimer() {
+  pauseTimer();
+  timerRemaining = timerSeconds;
+  updateTimerDisplay();
+}
+
+exerciseInput.addEventListener('input', updatePreviousBox);
+copyPrevBtn.addEventListener('click', copyPreviousSets);
+addSetBtn.addEventListener('click', () => addSetRow());
+saveWorkoutBtn.addEventListener('click', saveWorkout);
+searchInput.addEventListener('input', renderHistory);
+loadDemoBtn.addEventListener('click', loadDemo);
+clearBtn.addEventListener('click', clearData);
+exportBtn.addEventListener('click', exportData);
+startTimerBtn.addEventListener('click', startTimer);
+pauseTimerBtn.addEventListener('click', pauseTimer);
+resetTimerBtn.addEventListener('click', resetTimer);
+presetButtons.forEach((button) => {
+  button.addEventListener('click', () => {
+    timerSeconds = Number(button.dataset.seconds);
+    timerRemaining = timerSeconds;
+    updateTimerDisplay();
   });
-}
-
-function bindUtilityButtons() {
-  document.getElementById('loadDemoBtn').addEventListener('click', loadDemoData);
-  document.getElementById('resetDataBtn').addEventListener('click', () => {
-    if (!confirm('Reset all app data?')) return;
-    state = structuredClone(defaultState);
-    saveState();
-    renderAll();
-  });
-}
-
-function loadDemoData() {
-  state = {
-    ...structuredClone(defaultState),
-    stats: { currentWeight: 95.0, calories: 1950, protein: 220, carbs: 155, fat: 47, water: 4, steps: 23450, weeklySessions: 5 },
-    todayWorkout: 'Upper Body',
-    workoutFocus: 'Pressing, delts and arms',
-    workouts: [
-      { session: 'Upper Body A', exercise: 'Incline Dumbbell Press', targetSets: 3, targetReps: 10, weight: 32.5, completedSets: 3, notes: 'Strong today', date: new Date().toISOString() },
-      { session: 'Upper Body A', exercise: 'Cable Row', targetSets: 3, targetReps: 12, weight: 55, completedSets: 3, notes: 'Controlled reps', date: new Date().toISOString() }
-    ],
-    weightLogs: [
-      { date: '2026-03-12', weight: '95.0' },
-      { date: '2026-03-08', weight: '95.8' },
-      { date: '2026-03-04', weight: '96.4' },
-      { date: '2026-02-28', weight: '97.1' }
-    ],
-    measurements: [
-      { date: '2026-03-12', waist: '92', chest: '109', arms: '41', note: 'Waist tightening and energy good.' }
-    ],
-    nutritionDays: [
-      { date: new Date().toISOString(), calories: 1950, protein: 220, carbs: 155, fat: 47, water: 4, meals: ['3:30 AM shake','6:00 AM post-workout','8:00 AM eggs','12:00 PM meal','3:00 PM shake','6:00 PM meal'], supplements: 'Multivitamin, cod liver oil, magnesium, collagen' }
-    ],
-    cardioLogs: [
-      { type: 'Treadmill Walk', minutes: 30, steps: 5200, notes: 'Incline 12, speed 3.5 mph', date: new Date().toISOString() },
-      { type: 'Stair Climber', minutes: 20, steps: 3100, notes: 'Level 7', date: new Date().toISOString() }
-    ],
-    history: [
-      { type: 'Demo Loaded', text: 'Preview data added for Steady Log V3.', date: new Date().toLocaleString() }
-    ]
-  };
-  saveState();
-  renderAll();
-}
-
-function renderAll() {
-  renderDashboard();
-  renderWorkoutEntries();
-  renderMeasurements();
-  renderNutrition();
-  renderCardio();
-  renderHistory();
-  renderVideos();
-  drawWeightChart();
-}
-
-window.addEventListener('resize', drawWeightChart);
-
-document.addEventListener('DOMContentLoaded', () => {
-  setTodayDefaults();
-  bindNavigation();
-  bindForms();
-  bindTimer();
-  bindQuickLog();
-  bindUtilityButtons();
-  renderAll();
 });
+
+dateInput.value = todayValue();
+addSetRow();
+addSetRow();
+updatePreviousBox();
+renderHistory();
+renderSummary();
+updateTimerDisplay();
